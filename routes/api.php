@@ -1,53 +1,57 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DepartmentModelController;
+use App\Http\Controllers\DocumentModelController;
+use App\Http\Controllers\PriorityModelController;
+use App\Http\Controllers\RoleModelController;
+use App\Http\Controllers\TaskAssignmentModelController;
+use App\Http\Controllers\TaskModelController;
+use App\Http\Controllers\TaskStatusLogModelController;
+use App\Http\Controllers\TaskStatusModelController;
+use App\Http\Controllers\UserController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::post('getalldepartment', [DepartmentModelController::class, 'getalldepartment']);
+Route::post('adddepartment', [DepartmentModelController::class, 'adddepartment']);
+Route::post('updatedepartment', [DepartmentModelController::class, 'updatedepartment']);
+Route::post('deletedepartment', [DepartmentModelController::class, 'deletedepartment']);
 
-Route::POST('roles/getall', 'RoleController@getallroles');
-Route::POST('roles/add', 'RoleController@addrole');
-Route::POST('roles/update', 'RoleController@updaterole');
-Route::POST('roles/delete', 'RoleController@deleterole');
+Route::post('getalldocument', [DocumentModelController::class, 'getalldocument']);
+Route::post('adddocument', [DocumentModelController::class, 'adddocument']);
+Route::post('updatedocument', [DocumentModelController::class, 'updatedocument']);
+Route::post('deletedocument', [DocumentModelController::class, 'deletedocument']);
 
-Route::POST('statuses/getall', 'TaskStatusController@getallstatus');
-Route::POST('statuses/add', 'TaskStatusController@addstatus');
-Route::POST('statuses/update', 'TaskStatusController@updatestatus');
-Route::POST('statuses/delete', 'TaskStatusController@deletestatus');
+Route::post('getallpriority', [PriorityModelController::class, 'getallpriority']);
+Route::post('addpriority', [PriorityModelController::class, 'addpriority']);
+Route::post('updatepriority', [PriorityModelController::class, 'updatepriority']);
+Route::post('deletepriority', [PriorityModelController::class, 'deletepriority']);
 
-Route::POST('priorities/getall', 'PriorityController@getallpriority');
-Route::POST('priorities/add', 'PriorityController@addpriority');
-Route::POST('priorities/update', 'PriorityController@updatepriority');
-Route::POST('priorities/delete', 'PriorityController@deletepriority');
+Route::post('getallrole', [RoleModelController::class, 'getallrole']);
+Route::post('addrole', [RoleModelController::class, 'addrole']);
+Route::post('updaterole', [RoleModelController::class, 'updaterole']);
+Route::post('deleterole', [RoleModelController::class, 'deleterole']);
 
-Route::POST('departments/getall', 'DepartmentController@getalldepartment');
-Route::POST('departments/add', 'DepartmentController@adddepartment');
-Route::POST('departments/update', 'DepartmentController@updatedepartment');
-Route::POST('departments/delete', 'DepartmentController@deletedepartment');
+Route::post('getalltaskassignment', [TaskAssignmentModelController::class, 'getalltaskassignment']);
+Route::post('addtaskassignment', [TaskAssignmentModelController::class, 'addtaskassignment']);
+Route::post('updatetaskassignment', [TaskAssignmentModelController::class, 'updatetaskassignment']);
+Route::post('deletetaskassignment', [TaskAssignmentModelController::class, 'deletetaskassignment']);
 
-Route::POST('users/getall', 'UserController@getallusers');
-Route::POST('users/add', 'UserController@adduser');
-Route::POST('users/update', 'UserController@updateuser');
-Route::POST('users/delete', 'UserController@deleteuser');
+Route::post('getalltask', [TaskModelController::class, 'getalltask']);
+Route::post('addtask', [TaskModelController::class, 'addtask']);
+Route::post('updatetask', [TaskModelController::class, 'updatetask']);
+Route::post('deletetask', [TaskModelController::class, 'deletetask']);
 
-Route::POST('tasks/getall', 'TaskController@getalltasks');
-Route::POST('tasks/add', 'TaskController@addtask');
-Route::POST('tasks/update', 'TaskController@updatetask');
-Route::POST('tasks/delete', 'TaskController@deletetask');
+Route::post('getalltaskstatuslog', [TaskStatusLogModelController::class, 'getalltaskstatuslog']);
+Route::post('addtaskstatuslog', [TaskStatusLogModelController::class, 'addtaskstatuslog']);
+Route::post('updatetaskstatuslog', [TaskStatusLogModelController::class, 'updatetaskstatuslog']);
+Route::post('deletetaskstatuslog', [TaskStatusLogModelController::class, 'deletetaskstatuslog']);
 
-Route::POST('task-assignments/getall', 'TaskAssignmentController@getalltaskassignments');
-Route::POST('task-assignments/add', 'TaskAssignmentController@addtaskassignment');
-Route::POST('task-assignments/update', 'TaskAssignmentController@updatetaskassignment');
-Route::POST('task-assignments/delete', 'TaskAssignmentController@deletetaskassignment');
+Route::post('getalltaskstatus', [TaskStatusModelController::class, 'getalltaskstatus']);
+Route::post('addtaskstatus', [TaskStatusModelController::class, 'addtaskstatus']);
+Route::post('updatetaskstatus', [TaskStatusModelController::class, 'updatetaskstatus']);
+Route::post('deletetaskstatus', [TaskStatusModelController::class, 'deletetaskstatus']);
 
-Route::POST('documents/getall', 'DocumentController@getalldocuments');
-Route::POST('documents/add', 'DocumentController@adddocument');
-Route::POST('documents/update', 'DocumentController@updatedocument');
-Route::POST('documents/delete', 'DocumentController@deletedocument');
-
-Route::POST('role-permissions/getall', 'RolePermissionController@getallrolepermissions');
-Route::POST('role-permissions/add', 'RolePermissionController@addrolepermission');
-Route::POST('role-permissions/update', 'RolePermissionController@updaterolepermission');
-Route::POST('role-permissions/delete', 'RolePermissionController@deleterolepermission');
+Route::post('getalluser', [UserController::class, 'getalluser']);
+Route::post('adduser', [UserController::class, 'adduser']);
+Route::post('updateuser', [UserController::class, 'updateuser']);
+Route::post('deleteuser', [UserController::class, 'deleteuser']);

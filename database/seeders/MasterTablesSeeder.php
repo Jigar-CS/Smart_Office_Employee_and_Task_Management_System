@@ -2,97 +2,78 @@
 
 namespace Database\Seeders;
 
+use App\Models\DepartmentModel;
+use App\Models\PriorityModel;
+use App\Models\RoleModel;
+use App\Models\TaskStatusModel;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class MasterTablesSeeder extends Seeder
 {
-    public function run(): void
-    {
-        DB::table('roles')->updateOrInsert(
-            ['name' => 'Admin'],
-            ['description' => 'System administrator', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+	public function run(): void
+	{
+		$priorities = [
+			['title' => 'High', 'level' => 'High'],
+			['title' => 'Low', 'level' => 'Low'],
+			['title' => 'Avg', 'level' => 'Avg'],
+		];
 
-        DB::table('roles')->updateOrInsert(
-            ['name' => 'Manager'],
-            ['description' => 'Team manager', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		foreach ($priorities as $priorityData) {
+			PriorityModel::updateOrCreate(
+				['title' => $priorityData['title']],
+				[
+					'level' => $priorityData['level'],
+					'status' => 1,
+				]
+			);
+		}
 
-        DB::table('roles')->updateOrInsert(
-            ['name' => 'Employee'],
-            ['description' => 'Regular employee', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		$roles = [
+			['name' => 'Admin', 'description' => null],
+			['name' => 'Manager', 'description' => null],
+			['name' => 'Employee', 'description' => null],
+		];
 
-        DB::table('task_statuses')->updateOrInsert(
-            ['key' => 'open'],
-            ['label' => 'Open', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		foreach ($roles as $roleData) {
+			RoleModel::updateOrCreate(
+				['name' => $roleData['name']],
+				[
+					'description' => $roleData['description'],
+					'status' => 1,
+				]
+			);
+		}
 
-        DB::table('task_statuses')->updateOrInsert(
-            ['key' => 'in_progress'],
-            ['label' => 'In Progress', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		$taskStatuses = [
+			['title' => 'Open', 'description' => null],
+			['title' => 'In-progress', 'description' => null],
+			['title' => 'Done', 'description' => null],
+		];
 
-        DB::table('task_statuses')->updateOrInsert(
-            ['key' => 'done'],
-            ['label' => 'Done', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		foreach ($taskStatuses as $taskStatusData) {
+			TaskStatusModel::updateOrCreate(
+				['title' => $taskStatusData['title']],
+				[
+					'description' => $taskStatusData['description'],
+					'status' => 1,
+				]
+			);
+		}
 
-        DB::table('priorities')->updateOrInsert(
-            ['key' => 'low'],
-            ['label' => 'Low', 'level' => 1, 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
+		$departments = [
+			['name' => 'HR', 'description' => null],
+			['name' => 'Web Development', 'description' => null],
+			['name' => 'Cyber Security', 'description' => null],
+		];
 
-        DB::table('priorities')->updateOrInsert(
-            ['key' => 'medium'],
-            ['label' => 'Medium', 'level' => 2, 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-        DB::table('priorities')->updateOrInsert(
-            ['key' => 'high'],
-            ['label' => 'High', 'level' => 3, 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-        DB::table('departments')->updateOrInsert(
-            ['name' => 'HR'],
-            ['description' => 'Human Resources', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-         DB::table('departments')->updateOrInsert(
-            ['name' => 'Web Development'],
-            ['description' => 'Web Development', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-        DB::table('departments')->updateOrInsert(
-            ['name' => 'Cyber Security'],
-            ['description' => 'Cyber Security', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-        DB::table('departments')->updateOrInsert(
-            ['name' => 'General'],
-            ['description' => 'General department', 'status' => 1, 'created_at' => now(), 'updated_at' => now()]
-        );
-
-        $adminRoleId = DB::table('roles')->where('name', 'Admin')->value('id');
-
-        if ($adminRoleId && !DB::table('users')->where('email', 'admin@example.com')->exists()) {
-            DB::table('users')->insert([
-                'role_id' => $adminRoleId,
-                'department_id' => null,
-                'name' => 'Administrator',
-                'email' => 'admin@example.com',
-                'phone' => null,
-                'image' => null,
-                'email_verified_at' => now(),
-                'password' => Hash::make('Admin@123'),
-                'status' => 1,
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-    }
+		foreach ($departments as $departmentData) {
+			DepartmentModel::updateOrCreate(
+				['name' => $departmentData['name']],
+				[
+					'description' => $departmentData['description'],
+					'status' => 1,
+				]
+			);
+		}
+	}
 }
-
