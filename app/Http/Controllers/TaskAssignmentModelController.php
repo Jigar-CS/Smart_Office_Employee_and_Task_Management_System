@@ -8,9 +8,28 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskAssignmentModelController extends Controller
 {
+    public function gettaskassignment(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_task_assignments,assignment_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $taskAssignment = TaskAssignmentModel::where('assignment_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$taskAssignment) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $taskAssignment], 200);
+    }
+
     public function getalltaskassignment(Request $request)
     {
-        $taskAssignments = TaskAssignmentModel::orderBy('assignment_id', 'desc')->get();
+        $taskAssignments = TaskAssignmentModel::where('status', 1)->orderBy('assignment_id', 'desc')->get();
 
         return response()->json(['status' => 200, 'count' => $taskAssignments->count(), 'data' => $taskAssignments], 200);
     }
@@ -87,9 +106,10 @@ class TaskAssignmentModelController extends Controller
 
         try {
             $taskAssignment = TaskAssignmentModel::find($request->input('id'));
-            $taskAssignment->delete();
+            $taskAssignment->status = 0;
+            $taskAssignment->save();
 
-            return response()->json(['status' => 200, 'data' => $request->all()], 200);
+            return response()->json(['status' => 200, 'data' => $taskAssignment], 200);
         } catch (\Exception $e) {
             return response()->json(['status' => 400, 'error' => $e->getMessage()], 400);
         }

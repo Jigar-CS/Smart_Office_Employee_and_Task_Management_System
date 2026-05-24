@@ -9,6 +9,25 @@ use Illuminate\Validation\Rule;
 
 class DepartmentModelController extends Controller
 {
+    public function getdepartment(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_departments,department_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $department = DepartmentModel::where('department_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$department) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $department], 200);
+    }
+
     public function getalldepartment(Request $request)
     {
         $departments = DepartmentModel::where('status', 1)->orderBy('department_id', 'desc')->get();

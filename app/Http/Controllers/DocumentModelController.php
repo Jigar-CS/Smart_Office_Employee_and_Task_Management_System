@@ -8,6 +8,25 @@ use Illuminate\Support\Facades\Validator;
 
 class DocumentModelController extends Controller
 {
+    public function getdocument(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_documents,document_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $document = DocumentModel::where('document_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$document) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $document], 200);
+    }
+
     public function getalldocument(Request $request)
     {
         $documents = DocumentModel::where('status', 1)->orderBy('document_id', 'desc')->get();

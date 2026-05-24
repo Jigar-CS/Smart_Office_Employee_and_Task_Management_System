@@ -9,6 +9,25 @@ use Illuminate\Validation\Rule;
 
 class RoleModelController extends Controller
 {
+    public function getrole(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_roles,role_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $role = RoleModel::where('role_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$role) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $role], 200);
+    }
+
     public function getallrole(Request $request)
     {
         $roles = RoleModel::where('status', 1)->orderBy('role_id', 'desc')->get();

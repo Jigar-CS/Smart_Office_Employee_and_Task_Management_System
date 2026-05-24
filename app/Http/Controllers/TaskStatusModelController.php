@@ -9,6 +9,25 @@ use Illuminate\Validation\Rule;
 
 class TaskStatusModelController extends Controller
 {
+    public function gettaskstatus(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_task_status,task_status_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $taskStatus = TaskStatusModel::where('task_status_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$taskStatus) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $taskStatus], 200);
+    }
+
     public function getalltaskstatus(Request $request)
     {
         $taskStatuses = TaskStatusModel::where('status', 1)->orderBy('task_status_id', 'desc')->get();

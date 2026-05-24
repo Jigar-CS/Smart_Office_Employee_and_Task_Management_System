@@ -9,6 +9,25 @@ use Illuminate\Validation\Rule;
 
 class PriorityModelController extends Controller
 {
+    public function getpriority(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_priorities,priority_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $priority = PriorityModel::where('priority_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$priority) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $priority], 200);
+    }
+
     public function getallpriority(Request $request)
     {
         $priorities = PriorityModel::where('status', 1)->orderBy('priority_id', 'desc')->get();

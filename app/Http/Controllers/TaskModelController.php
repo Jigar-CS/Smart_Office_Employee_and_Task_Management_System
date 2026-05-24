@@ -5,10 +5,28 @@ namespace App\Http\Controllers;
 use App\Models\TaskModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class TaskModelController extends Controller
 {
+    public function gettask(Request $request)
+    {
+        $valid = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:tbl_tasks,task_id',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $task = TaskModel::where('task_id', $request->input('id'))->where('status', 1)->first();
+
+        if (!$task) {
+            return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+        }
+
+        return response()->json(['status' => 200, 'data' => $task], 200);
+    }
+
     public function getalltask(Request $request)
     {
         $tasks = TaskModel::where('status', 1)->orderBy('task_id', 'desc')->get();
