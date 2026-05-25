@@ -30,9 +30,27 @@ class DepartmentModelController extends Controller
 
     public function getalldepartment(Request $request)
     {
-        $departments = DepartmentModel::where('status', 1)->orderBy('department_id', 'desc')->get();
+        $valid = Validator::make($request->all(), [
+            'limit' => 'required|integer|min:1',
+            'offset' => 'required|integer|min:0',
+        ], [
+            'limit.required' => 'Limit is required.',
+            'limit.integer' => 'Limit must be an integer.',
+            'limit.min' => 'Limit must be at least :min.',
+            'offset.required' => 'Offset is required.',
+            'offset.integer' => 'Offset must be an integer.',
+            'offset.min' => 'Offset must be at least :min.',
+        ]);
 
-        return response()->json(['status' => 200, 'count' => $departments->count(), 'data' => $departments], 200);
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $departmentsQuery = DepartmentModel::where('status', 1)->orderBy('department_id', 'desc');
+        $count = $departmentsQuery->count();
+        $departments = $departmentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $departments], 200);
     }
 
     public function adddepartment(Request $request)
@@ -63,8 +81,16 @@ class DepartmentModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_departments,department_id',
-            'name' => ['required', 'string', 'max:255', Rule::unique('tbl_departments', 'name')->ignore($request->input('id'), 'department_id')],
+            'name' => ['nullable', 'string', 'max:255', Rule::unique('tbl_departments', 'name')->ignore($request->input('id'), 'department_id')],
             'description' => 'nullable|string',
+        ], [
+            'id.required' => 'Department id is required.',
+            'id.integer' => 'Department id must be an integer.',
+            'id.exists' => 'Department not found.',
+            'name.string' => 'Name must be a string.',
+            'name.max' => 'Name may not be greater than :max characters.',
+            'name.unique' => 'Department name has already been taken.',
+            'description.string' => 'Description must be a string.',
         ]);
 
         if ($valid->fails()) {
@@ -73,8 +99,12 @@ class DepartmentModelController extends Controller
 
         try {
             $department = DepartmentModel::find($request->input('id'));
-            $department->name = $request->input('name');
-            $department->description = $request->input('description');
+            if ($request->has('name')) {
+                $department->name = $request->input('name');
+            }
+            if ($request->has('description')) {
+                $department->description = $request->input('description');
+            }
             if ($request->has('status')) {
                 $department->status = $request->input('status');
             }

@@ -30,9 +30,27 @@ class PriorityModelController extends Controller
 
     public function getallpriority(Request $request)
     {
-        $priorities = PriorityModel::where('status', 1)->orderBy('priority_id', 'desc')->get();
+        $valid = Validator::make($request->all(), [
+            'limit' => 'required|integer|min:1',
+            'offset' => 'required|integer|min:0',
+        ], [
+            'limit.required' => 'Limit is required.',
+            'limit.integer' => 'Limit must be an integer.',
+            'limit.min' => 'Limit must be at least :min.',
+            'offset.required' => 'Offset is required.',
+            'offset.integer' => 'Offset must be an integer.',
+            'offset.min' => 'Offset must be at least :min.',
+        ]);
 
-        return response()->json(['status' => 200, 'count' => $priorities->count(), 'data' => $priorities], 200);
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $prioritiesQuery = PriorityModel::where('status', 1)->orderBy('priority_id', 'desc');
+        $count = $prioritiesQuery->count();
+        $priorities = $prioritiesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $priorities], 200);
     }
 
     public function addpriority(Request $request)
@@ -63,8 +81,17 @@ class PriorityModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_priorities,priority_id',
-            'title' => ['required', 'string', 'max:255', Rule::unique('tbl_priorities', 'title')->ignore($request->input('id'), 'priority_id')],
-            'level' => 'required|string|max:255',
+            'title' => ['nullable', 'string', 'max:255', Rule::unique('tbl_priorities', 'title')->ignore($request->input('id'), 'priority_id')],
+            'level' => 'nullable|string|max:255',
+        ], [
+            'id.required' => 'Priority id is required.',
+            'id.integer' => 'Priority id must be an integer.',
+            'id.exists' => 'Priority not found.',
+            'title.string' => 'Title must be a string.',
+            'title.max' => 'Title may not be greater than :max characters.',
+            'title.unique' => 'Priority title has already been taken.',
+            'level.string' => 'Level must be a string.',
+            'level.max' => 'Level may not be greater than :max characters.',
         ]);
 
         if ($valid->fails()) {
@@ -73,8 +100,12 @@ class PriorityModelController extends Controller
 
         try {
             $priority = PriorityModel::find($request->input('id'));
-            $priority->title = $request->input('title');
-            $priority->level = $request->input('level');
+            if ($request->has('title')) {
+                $priority->title = $request->input('title');
+            }
+            if ($request->has('level')) {
+                $priority->level = $request->input('level');
+            }
             if ($request->has('status')) {
                 $priority->status = $request->input('status');
             }

@@ -29,9 +29,27 @@ class DocumentModelController extends Controller
 
     public function getalldocument(Request $request)
     {
-        $documents = DocumentModel::where('status', 1)->orderBy('document_id', 'desc')->get();
+        $valid = Validator::make($request->all(), [
+            'limit' => 'required|integer|min:1',
+            'offset' => 'required|integer|min:0',
+        ], [
+            'limit.required' => 'Limit is required.',
+            'limit.integer' => 'Limit must be an integer.',
+            'limit.min' => 'Limit must be at least :min.',
+            'offset.required' => 'Offset is required.',
+            'offset.integer' => 'Offset must be an integer.',
+            'offset.min' => 'Offset must be at least :min.',
+        ]);
 
-        return response()->json(['status' => 200, 'count' => $documents->count(), 'data' => $documents], 200);
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        $documentsQuery = DocumentModel::where('status', 1)->orderBy('document_id', 'desc');
+        $count = $documentsQuery->count();
+        $documents = $documentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $documents], 200);
     }
 
     public function adddocument(Request $request)
@@ -70,12 +88,26 @@ class DocumentModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_documents,document_id',
-            'task_id' => 'required|integer',
-            'title' => 'required|string|max:255',
-            'file_name' => 'required|string|max:255',
-            'file_path' => 'required|string|max:255',
-            'mime_type' => 'required|string|max:255',
+            'task_id' => 'nullable|integer',
+            'title' => 'nullable|string|max:255',
+            'file_name' => 'nullable|string|max:255',
+            'file_path' => 'nullable|string|max:255',
+            'mime_type' => 'nullable|string|max:255',
             'file_size' => 'nullable|integer',
+        ], [
+            'id.required' => 'Document id is required.',
+            'id.integer' => 'Document id must be an integer.',
+            'id.exists' => 'Document not found.',
+            'task_id.integer' => 'Task id must be an integer.',
+            'title.string' => 'Title must be a string.',
+            'title.max' => 'Title may not be greater than :max characters.',
+            'file_name.string' => 'File name must be a string.',
+            'file_name.max' => 'File name may not be greater than :max characters.',
+            'file_path.string' => 'File path must be a string.',
+            'file_path.max' => 'File path may not be greater than :max characters.',
+            'mime_type.string' => 'Mime type must be a string.',
+            'mime_type.max' => 'Mime type may not be greater than :max characters.',
+            'file_size.integer' => 'File size must be an integer.',
         ]);
 
         if ($valid->fails()) {
@@ -84,12 +116,24 @@ class DocumentModelController extends Controller
 
         try {
             $document = DocumentModel::find($request->input('id'));
-            $document->task_id = $request->input('task_id');
-            $document->title = $request->input('title');
-            $document->file_name = $request->input('file_name');
-            $document->file_path = $request->input('file_path');
-            $document->mime_type = $request->input('mime_type');
-            $document->file_size = $request->input('file_size');
+            if ($request->has('task_id')) {
+                $document->task_id = $request->input('task_id');
+            }
+            if ($request->has('title')) {
+                $document->title = $request->input('title');
+            }
+            if ($request->has('file_name')) {
+                $document->file_name = $request->input('file_name');
+            }
+            if ($request->has('file_path')) {
+                $document->file_path = $request->input('file_path');
+            }
+            if ($request->has('mime_type')) {
+                $document->mime_type = $request->input('mime_type');
+            }
+            if ($request->has('file_size')) {
+                $document->file_size = $request->input('file_size');
+            }
             if ($request->has('status')) {
                 $document->status = $request->input('status');
             }

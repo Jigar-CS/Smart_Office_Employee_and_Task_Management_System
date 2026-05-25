@@ -6,7 +6,9 @@ use App\Models\DepartmentModel;
 use App\Models\PriorityModel;
 use App\Models\RoleModel;
 use App\Models\TaskStatusModel;
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class MasterTablesSeeder extends Seeder
 {
@@ -75,5 +77,21 @@ class MasterTablesSeeder extends Seeder
 				]
 			);
 		}
+
+		$adminRole = RoleModel::where('name', 'Admin')->first();
+		$adminDepartment = DepartmentModel::where('name', 'HR')->first();
+
+		User::updateOrCreate(
+			['email' => 'admin@smartoffice.com'],
+			[
+				'name' => 'System Admin',
+				'password' => Hash::make('Admin@123'),
+				'role_id' => $adminRole?->role_id ?? 1,
+				'department_id' => $adminDepartment?->department_id ?? 1,
+				'mobile' => null,
+				'image' => null,
+				'status' => 1,
+			]
+		);
 	}
 }
