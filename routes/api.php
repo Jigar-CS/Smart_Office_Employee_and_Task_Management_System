@@ -1,4 +1,4 @@
-<?php
+x`<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DepartmentModelController;
@@ -14,7 +14,7 @@ use App\Http\Controllers\AuthController;
 
 // Public login to generate own token
 Route::post('login', [AuthController::class, 'login']);
-Route::post('loginuser', [AuthController::class, 'login']);
+Route::post('loginuser', [AuthController::class, 'loginUser']);
 
 // All API routes require a valid token
 Route::middleware('auth:sanctum')->group(function () {
