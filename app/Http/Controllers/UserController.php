@@ -11,6 +11,17 @@ use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
+    private function isAdminUser(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $adminRoleId = \App\Models\RoleModel::where('name', 'Admin')->value('role_id');
+
+        return $user->user_id === 1 || ($adminRoleId !== null && (int) $user->role_id === (int) $adminRoleId);
+    }
+
     public function getuser(Request $request)
     {
         $valid = Validator::make($request->all(), [
@@ -63,8 +74,8 @@ class UserController extends Controller
     public function adduser(Request $request)
     {
         $caller = $request->user();
-        if (! $caller || $caller->user_id !== 1) {
-            return response()->json(['status' => 403, 'error' => 'Action requires first user token.'], 403);
+        if (! $this->isAdminUser($caller)) {
+            return response()->json(['status' => 403, 'error' => 'Action requires admin token.'], 403);
         }
         $valid = Validator::make($request->all(), [
             'name' => 'required|string|max:255',

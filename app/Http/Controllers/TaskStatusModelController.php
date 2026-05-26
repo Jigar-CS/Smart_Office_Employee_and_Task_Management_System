@@ -128,7 +128,10 @@ class TaskStatusModelController extends Controller
 
         try {
             $taskStatus = TaskStatusModel::find($request->input('id'));
+            $caller = $request->user();
             $taskStatus->status = 0;
+            $taskStatus->updated_by = $caller?->user_id;
+            $taskStatus->updated_at = now();
             $taskStatus->save();
 
             return response()->json(['status' => 200, 'data' => $taskStatus], 200);

@@ -157,7 +157,10 @@ class DocumentModelController extends Controller
 
         try {
             $document = DocumentModel::find($request->input('id'));
+            $caller = $request->user();
             $document->status = 0;
+            $document->updated_by = $caller?->user_id;
+            $document->updated_at = now();
             $document->save();
 
             return response()->json(['status' => 200, 'data' => $document], 200);

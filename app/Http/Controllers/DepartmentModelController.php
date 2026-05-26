@@ -128,7 +128,10 @@ class DepartmentModelController extends Controller
 
         try {
             $department = DepartmentModel::find($request->input('id'));
+            $caller = $request->user();
             $department->status = 0;
+            $department->updated_by = $caller?->user_id;
+            $department->updated_at = now();
             $department->save();
 
             return response()->json(['status' => 200, 'data' => $department], 200);

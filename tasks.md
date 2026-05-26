@@ -125,6 +125,9 @@ Change Log
 - 2026-05-22: Appended 13 user-provided tasks and updated todo list.
 - 2026-05-26: Added create-task-with-auto-assignment requirement and RBAC constraints.
 - 2026-05-26: Locked down separate assignment-create API route per user confirmation.
+- 2026-05-26: Enforced assigned-only task visibility for fetch APIs.
+- 2026-05-26: Updated delete policy to remove deleted_at and use updated_at/updated_by on delete.
+- 2026-05-26: Consolidated schema into base migrations and removed redundant incremental migration files.
 
 - Date: 2026-05-26
 - Author: User
@@ -146,6 +149,32 @@ Change Log
 	- Do not use a separate task-assignment create API for normal flow.
 	- Task assignment should happen via create-task flow.
 - Status: completed
+
+- Date: 2026-05-26
+- Author: User
+- Category: Requirement
+- Title: Assigned-Only Task Fetch
+- Description:
+	- For task fetch APIs (single and list), only show tasks assigned to the logged-in user.
+	- If a task id is requested and it is not assigned to the user, return a custom error message.
+- Status: in-progress
+
+- Date: 2026-05-26
+- Author: User
+- Category: Requirement
+- Title: Unified Delete Audit Policy
+- Description:
+	- Remove `deleted_at` column from all DB tables.
+	- On delete operation, set status to inactive and store delete time in `updated_at` and user id in `updated_by`.
+- Status: in-progress
+
+- Date: 2026-05-26
+- Author: User
+- Category: Requirement
+- Title: Migration Cleanup
+- Description:
+	- Remove unwanted incremental migration files by updating base create migrations with final schema.
+- Status: in-progress
 
 Project Summary (selected problem statement)
 

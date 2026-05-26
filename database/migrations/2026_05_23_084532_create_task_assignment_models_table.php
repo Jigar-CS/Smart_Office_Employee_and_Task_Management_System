@@ -11,17 +11,16 @@ return new class extends Migration
         Schema::create('tbl_task_assignments', function (Blueprint $table) {
             $table->id('assignment_id');
             $table->integer('task_id'); // Yellow FK
+            $table->integer('task_priority')->nullable();
             $table->integer('assigned_by'); // Yellow FK
             $table->integer('user_id'); // Yellow FK
             $table->timestamp('assigned_at')->useCurrent();
             
             // Common Fields
             $table->timestamp('created_at')->useCurrent();
-            $table->integer('created_by')->nullable();
             $table->timestamp('updated_at')->nullable();
             $table->integer('updated_by')->nullable();
             $table->integer('status')->default(1);
-            $table->softDeletes('deleted_at');
         });
     }
 

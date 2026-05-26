@@ -19,7 +19,6 @@ return new class extends Migration
             $table->timestamp('updated_at')->nullable();
             $table->integer('updated_by')->nullable();
             $table->integer('status')->default(1);
-            $table->softDeletes('deleted_at');
         });
     }
 

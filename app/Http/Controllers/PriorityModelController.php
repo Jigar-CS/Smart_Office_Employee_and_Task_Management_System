@@ -129,7 +129,10 @@ class PriorityModelController extends Controller
 
         try {
             $priority = PriorityModel::find($request->input('id'));
+            $caller = $request->user();
             $priority->status = 0;
+            $priority->updated_by = $caller?->user_id;
+            $priority->updated_at = now();
             $priority->save();
 
             return response()->json(['status' => 200, 'data' => $priority], 200);

@@ -12,14 +12,12 @@ use App\Http\Controllers\TaskStatusModelController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AuthController;
 
-// Public login to generate own token
-Route::post('login', [AuthController::class, 'login']);
-Route::post('loginuser', [AuthController::class, 'loginUser']);
+// Public admin login; optional token is resolved when present for normal-user login checks
+Route::post('userlogin', [AuthController::class, 'userlogin'])->middleware('optional.token.auth');
 
 // All API routes require a valid token
 Route::middleware('auth:sanctum')->group(function () {
 	Route::post('logout', [AuthController::class, 'logout']);
-	Route::post('logoutuser', [AuthController::class, 'logout']);
 
 	Route::post('getalldepartment', [DepartmentModelController::class, 'getalldepartment']);
 	Route::post('getdepartment', [DepartmentModelController::class, 'getdepartment']);
@@ -51,11 +49,10 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::post('deletetaskassignment', [TaskAssignmentModelController::class, 'deletetaskassignment']);
 
 	Route::post('getalltask', [TaskModelController::class, 'getalltask']);
-	Route::post('gettask', [TaskModelController::class, 'gettask']);
-	Route::post('createtask', [TaskModelController::class, 'addtask']);
-	Route::post('addtask', [TaskModelController::class, 'addtask']);
-	Route::post('updatetask', [TaskModelController::class, 'updatetask']);
-	Route::post('deletetask', [TaskModelController::class, 'deletetask']);
+	Route::post('gettask', [TaskModelController::class, 'gettask'])->middleware('task.assigned');
+	Route::post('createtask', [TaskModelController::class, 'addtask'])->middleware('task.manage');
+	Route::post('updatetask', [TaskModelController::class, 'updatetask'])->middleware('task.assigned');
+	Route::post('deletetask', [TaskModelController::class, 'deletetask'])->middleware('task.assigned');
 
 	Route::post('getalltaskstatuslog', [TaskStatusLogModelController::class, 'getalltaskstatuslog']);
 	Route::post('addtaskstatuslog', [TaskStatusLogModelController::class, 'addtaskstatuslog']);
@@ -70,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 	Route::post('getalluser', [UserController::class, 'getalluser']);
 	Route::post('getuser', [UserController::class, 'getuser']);
-	Route::post('adduser', [UserController::class, 'adduser']);
+	Route::post('createuser', [UserController::class, 'adduser'])->middleware('admin.token');
 	Route::post('updateuser', [UserController::class, 'updateuser']);
 	Route::post('deleteuser', [UserController::class, 'deleteuser']);
 });

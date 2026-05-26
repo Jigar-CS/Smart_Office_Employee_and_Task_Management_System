@@ -26,7 +26,7 @@ class TaskStatusLogModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $taskStatusLogsQuery = TaskStatusLogModel::orderBy('status_log_id', 'desc');
+        $taskStatusLogsQuery = TaskStatusLogModel::where('status', 1)->orderBy('status_log_id', 'desc');
         $count = $taskStatusLogsQuery->count();
         $taskStatusLogs = $taskStatusLogsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 
@@ -58,6 +58,7 @@ class TaskStatusLogModelController extends Controller
             $taskStatusLog->changed_by = $request->input('changed_by');
             $taskStatusLog->remarks = $request->input('remarks');
             $taskStatusLog->department_id = $request->input('department_id');
+            $taskStatusLog->status = 1;
             $result = $taskStatusLog->save();
 
             return response()->json(['status' => 200, 'data' => $result ? $taskStatusLog : null], 200);
@@ -141,9 +142,13 @@ class TaskStatusLogModelController extends Controller
 
         try {
             $taskStatusLog = TaskStatusLogModel::find($request->input('id'));
-            $taskStatusLog->delete();
+            $caller = $request->user();
+            $taskStatusLog->status = 0;
+            $taskStatusLog->updated_by = $caller?->user_id;
+            $taskStatusLog->updated_at = now();
+            $taskStatusLog->save();
 
-            return response()->json(['status' => 200, 'data' => $request->all()], 200);
+            return response()->json(['status' => 200, 'data' => $taskStatusLog], 200);
         } catch (\Exception $e) {
             return response()->json(['status' => 400, 'error' => $e->getMessage()], 400);
         }

@@ -176,7 +176,10 @@ class TaskAssignmentModelController extends Controller
 
         try {
             $taskAssignment = TaskAssignmentModel::find($request->input('id'));
+            $caller = $request->user();
             $taskAssignment->status = 0;
+            $taskAssignment->updated_by = $caller?->user_id;
+            $taskAssignment->updated_at = now();
             $taskAssignment->save();
 
             return response()->json(['status' => 200, 'data' => $taskAssignment], 200);

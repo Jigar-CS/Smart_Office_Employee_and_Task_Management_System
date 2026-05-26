@@ -14,6 +14,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'optional.token.auth' => \App\Http\Middleware\OptionalTokenAuthMiddleware::class,
+            'admin.token' => \App\Http\Middleware\TokenAuthMiddleware::class,
+            'task.manage' => \App\Http\Middleware\TaskManageMiddleware::class,
+            'task.assigned' => \App\Http\Middleware\TaskAssignedMiddleware::class,
+        ]);
+
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*')) {
                 return null;

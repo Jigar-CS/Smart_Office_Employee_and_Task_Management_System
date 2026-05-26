@@ -143,7 +143,10 @@ class RoleModelController extends Controller
 
         try {
             $role = RoleModel::find($request->input('id'));
+            $caller = $request->user();
             $role->status = 0;
+            $role->updated_by = $caller?->user_id;
+            $role->updated_at = now();
             $role->save();
 
             return response()->json(['status' => 200, 'data' => $role], 200);
