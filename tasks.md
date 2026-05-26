@@ -123,6 +123,29 @@ Recorded Tasks (user-provided)
 Change Log
 - 2026-05-22: Created file and recorded initial user instruction.
 - 2026-05-22: Appended 13 user-provided tasks and updated todo list.
+- 2026-05-26: Added create-task-with-auto-assignment requirement and RBAC constraints.
+- 2026-05-26: Locked down separate assignment-create API route per user confirmation.
+
+- Date: 2026-05-26
+- Author: User
+- Category: Requirement
+- Title: Create Task With Auto Assignment And Status Log
+- Description:
+	- Remove `created_by` from create-task API payload.
+	- Only Admin/Manager can assign tasks.
+	- Create-task input fields: `title`, `start_date`, `due_date`, `priority_id`, `task_status_id`, `department_id`, `assigned_user_ids`.
+	- On create-task, auto-create task assignments for all `assigned_user_ids` with assignment details.
+	- On create-task, auto-create task status log with assignment-related details (including who assigned).
+- Status: in-progress
+
+- Date: 2026-05-26
+- Author: User
+- Category: Requirement
+- Title: Disable Separate Assignment Create API
+- Description:
+	- Do not use a separate task-assignment create API for normal flow.
+	- Task assignment should happen via create-task flow.
+- Status: completed
 
 Project Summary (selected problem statement)
 

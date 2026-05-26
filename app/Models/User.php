@@ -12,7 +12,12 @@ class User extends Authenticatable
     protected $primaryKey = 'user_id';
     protected $guarded = [];
 
+    protected $casts = [
+        'old_vallue' => 'array',
+    ];
+
     protected $hidden = [
         'password',
+        'old_vallue',
     ];
 }

@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\TaskAssignmentModel;
+use App\Models\TaskStatusLogModel;
+use App\Models\TaskModel;
+use App\Models\User;
+use App\Models\RoleModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -56,8 +60,8 @@ class TaskAssignmentModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'task_id' => 'required|integer|exists:tbl_tasks,task_id',
-            'user_id' => 'required|integer|exists:tbl_users,user_id',
-            'assigned_by' => 'required|integer|exists:tbl_users,user_id',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:tbl_users,user_id',
             'assigned_at' => 'nullable|date',
             'remarks' => 'nullable|string',
         ]);
@@ -67,15 +71,44 @@ class TaskAssignmentModelController extends Controller
         }
 
         try {
-            $taskAssignment = new TaskAssignmentModel();
-            $taskAssignment->task_id = $request->input('task_id');
-            $taskAssignment->user_id = $request->input('user_id');
-            $taskAssignment->assigned_by = $request->input('assigned_by');
-            $taskAssignment->assigned_at = $request->input('assigned_at', now());
-            $taskAssignment->status = 1;
-            $result = $taskAssignment->save();
+            $authUser = $request->user();
+            if (!$authUser) {
+                return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
+            }
 
-            return response()->json(['status' => 200, 'data' => $result ? $taskAssignment : null], 200);
+            $authRole = RoleModel::find($authUser->role_id);
+            $canAssign = $authRole && in_array($authRole->name, ['Admin', 'Manager']);
+            if (!$canAssign) {
+                return response()->json(['status' => 403, 'error' => 'Only Admin or Manager can assign tasks.'], 403);
+            }
+
+            $task = TaskModel::find($request->input('task_id'));
+            $createdAssignments = [];
+            $userIds = $request->input('user_ids');
+            foreach ($userIds as $uid) {
+                $taskAssignment = new TaskAssignmentModel();
+                $taskAssignment->task_id = $request->input('task_id');
+                $taskAssignment->task_priority = $task->priority_id;
+                $taskAssignment->user_id = $uid;
+                $taskAssignment->assigned_by = $authUser->user_id;
+                $taskAssignment->assigned_at = $request->input('assigned_at', now());
+                $taskAssignment->status = 1;
+                $taskAssignment->save();
+                $createdAssignments[] = $taskAssignment;
+            }
+
+            // log assignment in task status log (records who assigned)
+            $log = new TaskStatusLogModel();
+            $log->task_id = $task->task_id;
+            $log->from_status_id = $task->task_status_id ?? null;
+            $log->to_status_id = $task->task_status_id ?? null;
+            $log->assigned_by = $authUser->user_id;
+            $log->changed_by = $authUser->user_id;
+            $log->remarks = $request->input('remarks', 'Assigned to: ' . implode(',', $userIds));
+            $log->department_id = $task->department_id;
+            $log->save();
+
+            return response()->json(['status' => 200, 'data' => $createdAssignments], 200);
         } catch (\Exception $e) {
             return response()->json(['status' => 400, 'error' => $e->getMessage()], 400);
         }

@@ -47,12 +47,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 	Route::post('getalltaskassignment', [TaskAssignmentModelController::class, 'getalltaskassignment']);
 	Route::post('gettaskassignment', [TaskAssignmentModelController::class, 'gettaskassignment']);
-	Route::post('addtaskassignment', [TaskAssignmentModelController::class, 'addtaskassignment']);
 	Route::post('updatetaskassignment', [TaskAssignmentModelController::class, 'updatetaskassignment']);
 	Route::post('deletetaskassignment', [TaskAssignmentModelController::class, 'deletetaskassignment']);
 
 	Route::post('getalltask', [TaskModelController::class, 'getalltask']);
 	Route::post('gettask', [TaskModelController::class, 'gettask']);
+	Route::post('createtask', [TaskModelController::class, 'addtask']);
 	Route::post('addtask', [TaskModelController::class, 'addtask']);
 	Route::post('updatetask', [TaskModelController::class, 'updatetask']);
 	Route::post('deletetask', [TaskModelController::class, 'deletetask']);

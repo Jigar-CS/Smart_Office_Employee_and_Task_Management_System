@@ -159,6 +159,8 @@ class UserController extends Controller
 
         try {
             $user = User::find($request->input('id'));
+            $caller = $request->user();
+            $user->old_vallue = $user->toArray();
             if ($request->has('name')) {
                 $user->name = $request->input('name');
             }
@@ -183,6 +185,8 @@ class UserController extends Controller
             if ($request->has('status')) {
                 $user->status = $request->input('status');
             }
+            $user->updated_by = $caller?->user_id;
+            $user->updated_at = now();
             $user->save();
 
             return response()->json(['status' => 200, 'data' => $user], 200);
@@ -207,7 +211,11 @@ class UserController extends Controller
 
         try {
             $user = User::find($request->input('id'));
+            $caller = $request->user();
+            $user->old_vallue = $user->toArray();
             $user->status = 0;
+            $user->updated_by = $caller?->user_id;
+            $user->updated_at = now();
             $user->save();
 
             return response()->json(['status' => 200, 'data' => $user], 200);
