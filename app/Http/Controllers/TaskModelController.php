@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\Validator;
 
 class TaskModelController extends Controller
 {
+    private function canViewAllTasks(?\App\Models\User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return in_array((int) $user->role_id, [1, 2], true);
+    }
+
     private function canManageTasks(?\App\Models\User $user): bool
     {
         if (! $user) {
@@ -44,6 +53,10 @@ class TaskModelController extends Controller
             return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
         }
 
+        if ($this->canViewAllTasks($authUser)) {
+            return response()->json(['status' => 200, 'data' => $task], 200);
+        }
+
         $assigned = TaskAssignmentModel::where('task_id', $task->task_id)
             ->where('user_id', $authUser->user_id)
             ->where('status', 1)
@@ -61,6 +74,9 @@ class TaskModelController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'search' => 'nullable|string|max:255',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
         ], [
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
@@ -68,6 +84,11 @@ class TaskModelController extends Controller
             'offset.required' => 'Offset is required.',
             'offset.integer' => 'Offset must be an integer.',
             'offset.min' => 'Offset must be at least :min.',
+            'search.string' => 'Search must be a string.',
+            'search.max' => 'Search may not be greater than :max characters.',
+            'from_date.date' => 'From date must be a valid date.',
+            'to_date.date' => 'To date must be a valid date.',
+            'to_date.after_or_equal' => 'To date must be the same as or later than from date.',
         ]);
 
         if ($valid->fails()) {
@@ -81,8 +102,27 @@ class TaskModelController extends Controller
 
         $tasksQuery = TaskModel::where('status', 1)->orderBy('task_id', 'desc');
 
-        $assignedTaskIds = TaskAssignmentModel::where('user_id', $authUser->user_id)->where('status', 1)->pluck('task_id');
-        $tasksQuery = $tasksQuery->whereIn('task_id', $assignedTaskIds);
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $tasksQuery->where('title', 'like', '%' . $search . '%');
+        }
+
+        if ($request->filled('from_date') && $request->filled('to_date')) {
+            $tasksQuery->whereDate('created_at', '>=', $request->input('from_date'))
+                ->whereDate('created_at', '<=', $request->input('to_date'));
+        } elseif ($request->filled('from_date')) {
+            $tasksQuery->whereDate('created_at', '>=', $request->input('from_date'));
+        } elseif ($request->filled('to_date')) {
+            $tasksQuery->whereDate('created_at', '<=', $request->input('to_date'));
+        }
+
+        if (! $this->canViewAllTasks($authUser)) {
+            $assignedTaskIds = TaskAssignmentModel::where('user_id', $authUser->user_id)
+                ->where('status', 1)
+                ->pluck('task_id');
+
+            $tasksQuery = $tasksQuery->whereIn('task_id', $assignedTaskIds);
+        }
 
         $count = $tasksQuery->count();
         $tasks = $tasksQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
@@ -94,7 +134,7 @@ class TaskModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'start_date' => 'required|date',
             'due_date' => 'required|date',
             'priority_id' => 'required|integer|exists:tbl_priorities,priority_id',
@@ -102,6 +142,9 @@ class TaskModelController extends Controller
             'department_id' => 'required|integer|exists:tbl_departments,department_id',
             'assigned_user_ids' => 'required|array|min:1',
             'assigned_user_ids.*' => 'integer|exists:tbl_users,user_id',
+        ], [
+            'description.required' => 'Description is required.',
+            'description.string' => 'Description must be a string.',
         ]);
 
         if ($valid->fails()) {

@@ -51,6 +51,7 @@ class UserController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'search' => 'nullable|string|max:255',
         ], [
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
@@ -58,6 +59,8 @@ class UserController extends Controller
             'offset.required' => 'Offset is required.',
             'offset.integer' => 'Offset must be an integer.',
             'offset.min' => 'Offset must be at least :min.',
+            'search.string' => 'Search must be a string.',
+            'search.max' => 'Search may not be greater than :max characters.',
         ]);
 
         if ($valid->fails()) {
@@ -65,6 +68,12 @@ class UserController extends Controller
         }
 
         $usersQuery = User::where('status', 1)->orderBy('user_id', 'desc');
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $usersQuery->where('name', 'like', '%' . $search . '%');
+        }
+
         $count = $usersQuery->count();
         $users = $usersQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 
