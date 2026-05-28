@@ -108,12 +108,12 @@ class TaskModelController extends Controller
         }
 
         if ($request->filled('from_date') && $request->filled('to_date')) {
-            $tasksQuery->whereDate('created_at', '>=', $request->input('from_date'))
-                ->whereDate('created_at', '<=', $request->input('to_date'));
+            $tasksQuery->whereDate('start_date', '<=', $request->input('to_date'))
+                ->whereDate('due_date', '>=', $request->input('from_date'));
         } elseif ($request->filled('from_date')) {
-            $tasksQuery->whereDate('created_at', '>=', $request->input('from_date'));
+            $tasksQuery->whereDate('due_date', '>=', $request->input('from_date'));
         } elseif ($request->filled('to_date')) {
-            $tasksQuery->whereDate('created_at', '<=', $request->input('to_date'));
+            $tasksQuery->whereDate('start_date', '<=', $request->input('to_date'));
         }
 
         if (! $this->canViewAllTasks($authUser)) {

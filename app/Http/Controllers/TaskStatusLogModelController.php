@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TaskAssignmentModel;
+use App\Models\TaskModel;
 use App\Models\TaskStatusLogModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -13,24 +15,38 @@ class TaskStatusLogModelController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
-        ], [
-            'limit.required' => 'Limit is required.',
-            'limit.integer' => 'Limit must be an integer.',
-            'limit.min' => 'Limit must be at least :min.',
-            'offset.required' => 'Offset is required.',
-            'offset.integer' => 'Offset must be an integer.',
-            'offset.min' => 'Offset must be at least :min.',
         ]);
 
         if ($valid->fails()) {
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $taskStatusLogsQuery = TaskStatusLogModel::where('status', 1)->orderBy('status_log_id', 'desc');
-        $count = $taskStatusLogsQuery->count();
-        $taskStatusLogs = $taskStatusLogsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+        $tasksQuery = TaskModel::query()
+            ->leftJoin('tbl_departments as d', 'tbl_tasks.department_id', '=', 'd.department_id')
+            ->leftJoin('tbl_users as created_by_user', 'tbl_tasks.created_by', '=', 'created_by_user.user_id')
+            ->leftJoin('tbl_task_status as ts', 'tbl_tasks.task_status_id', '=', 'ts.task_status_id')
+            ->select(
+                'tbl_tasks.*',
+                'd.name as department_name',
+                'created_by_user.name as created_by_name',
+                'ts.title as task_status_name'
+            )
+            ->where('tbl_tasks.status', 1)
+            ->orderBy('tbl_tasks.task_id', 'desc');
 
-        return response()->json(['status' => 200, 'count' => $count, 'data' => $taskStatusLogs], 200);
+        $count = $tasksQuery->count();
+        $tasks = $tasksQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+
+        foreach ($tasks as $task) {
+            $task->assigned_users = TaskAssignmentModel::query()
+                ->leftJoin('tbl_users as u', 'tbl_task_assignments.user_id', '=', 'u.user_id')
+                ->where('tbl_task_assignments.task_id', $task->task_id)
+                ->where('tbl_task_assignments.status', 1)
+                ->select('u.user_id', 'u.name', 'u.email', 'u.mobile', 'u.image')
+                ->get();
+        }
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $tasks], 200);
     }
 
     public function addtaskstatuslog(Request $request)

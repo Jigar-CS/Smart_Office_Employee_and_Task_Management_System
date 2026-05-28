@@ -52,28 +52,24 @@ class UserController extends Controller
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
             'search' => 'nullable|string|max:255',
-        ], [
-            'limit.required' => 'Limit is required.',
-            'limit.integer' => 'Limit must be an integer.',
-            'limit.min' => 'Limit must be at least :min.',
-            'offset.required' => 'Offset is required.',
-            'offset.integer' => 'Offset must be an integer.',
-            'offset.min' => 'Offset must be at least :min.',
-            'search.string' => 'Search must be a string.',
-            'search.max' => 'Search may not be greater than :max characters.',
         ]);
 
         if ($valid->fails()) {
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $usersQuery = User::where('status', 1)->orderBy('user_id', 'desc');
+        $usersQuery = User::query()
+            ->leftJoin('tbl_roles as r', 'tbl_users.role_id', '=',  'r.role_id')
+            ->leftJoin('tbl_departments as d', 'tbl_users.department_id', '=', 'd.department_id')
+            ->where('tbl_users.status', 1)
+            ->select('tbl_users.*','r.name as role_name', 'd.name as department_name')
+            ->orderBy('tbl_users.user_id', 'desc');
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $usersQuery->where('name', 'like', '%' . $search . '%');
+            $usersQuery->where('tbl_users.name', 'like', '%' . $search . '%');
         }
-
+                        
         $count = $usersQuery->count();
         $users = $usersQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 
