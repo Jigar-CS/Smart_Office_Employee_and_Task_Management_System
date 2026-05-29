@@ -15,6 +15,7 @@ class TaskStatusLogModelController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'user_id' => 'nullable|integer|exists:tbl_users,user_id',
         ]);
 
         if ($valid->fails()) {
@@ -33,6 +34,16 @@ class TaskStatusLogModelController extends Controller
             )
             ->where('tbl_tasks.status', 1)
             ->orderBy('tbl_tasks.task_id', 'desc');
+
+        if ($request->filled('user_id')) {
+            $tasksQuery->whereExists(function ($query) use ($request) {
+                $query->selectRaw('1')
+                    ->from('tbl_task_assignments as ta')
+                    ->whereColumn('ta.task_id', 'tbl_tasks.task_id')
+                    ->where('ta.status', 1)
+                    ->where('ta.user_id', $request->input('user_id'));
+            });
+        }
 
         $count = $tasksQuery->count();
         $tasks = $tasksQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
