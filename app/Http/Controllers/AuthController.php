@@ -2,24 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RoleModel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    private function isAdminUser(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        $adminRoleId = RoleModel::where('name', 'Admin')->value('role_id');
-
-        return $user->user_id === 1 || ($adminRoleId !== null && (int) $user->role_id === (int) $adminRoleId);
-    }
-
     public function userlogin(Request $request)
     {
         $valid = validator($request->all(), [
@@ -41,17 +29,7 @@ class AuthController extends Controller
             return response()->json(['status' => 401, 'error' => 'Invalid credentials.'], 401);
         }
 
-        $authUser = $request->user();
-        $isAdminUser = $this->isAdminUser($user);
-
-        if (! $isAdminUser && ! $this->isAdminUser($authUser)) {
-            return response()->json([
-                'status' => 401,
-                'error' => 'Authorization is required!!!',
-            ], 401);
-        }
-
-        $tokenName = $isAdminUser ? 'admin-token' : 'api-token';
+        $tokenName = 'api-token';
 
         $token = $user->createToken($tokenName)->plainTextToken;
         $user->last_login_at = now();
@@ -63,7 +41,6 @@ class AuthController extends Controller
                 'token' => $token,
                // 'token_type' => 'Bearer',
                 //'authorization' => 'Bearer ' . $token,
-                //'is_admin' => $isAdminUser,
                 'user' => $user,
             ],
         ], 200);
