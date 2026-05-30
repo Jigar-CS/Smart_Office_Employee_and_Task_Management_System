@@ -17,9 +17,12 @@ class UserController extends Controller
             return false;
         }
 
-        $adminRoleId = \App\Models\RoleModel::where('name', 'Admin')->value('role_id');
+        $role = \App\Models\RoleModel::find($user->role_id);
+        $roleName = strtolower(trim((string) ($role?->name ?? '')));
 
-        return $user->user_id === 1 || ($adminRoleId !== null && (int) $user->role_id === (int) $adminRoleId);
+        return $user->user_id === 1
+            || in_array((int) $user->role_id, [1, 2], true)
+            || ($roleName !== '' && (str_contains($roleName, 'admin') || str_contains($roleName, 'manager')));
     }
 
     public function getuser(Request $request)
@@ -52,6 +55,7 @@ class UserController extends Controller
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
             'search' => 'nullable|string|max:255',
+            'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
         ]);
 
         if ($valid->fails()) {
@@ -68,6 +72,10 @@ class UserController extends Controller
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
             $usersQuery->where('tbl_users.name', 'like', '%' . $search . '%');
+        }
+
+        if ($request->filled('department_id')) {
+            $usersQuery->where('tbl_users.department_id', $request->input('department_id'));
         }
                         
         $count = $usersQuery->count();
@@ -202,6 +210,71 @@ class UserController extends Controller
                 $user->status = $request->input('status');
             }
             $user->updated_by = $caller?->user_id;
+            $user->updated_at = now();
+            $user->save();
+
+            return response()->json(['status' => 200, 'data' => $user], 200);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 400, 'error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function updateprofile(Request $request)
+    {
+        $caller = $request->user();
+
+        if (! $caller) {
+            return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
+        }
+
+        $valid = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('tbl_users', 'email')->ignore($caller->user_id, 'user_id'),
+            ],
+            'mobile' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:255',
+            'image_file' => 'nullable|image|max:2048',
+        ], [
+            'name.required' => 'Name is required.',
+            'name.string' => 'Name must be a string.',
+            'name.max' => 'Name may not be greater than :max characters.',
+            'email.required' => 'Email is required.',
+            'email.email' => 'Email must be a valid email address.',
+            'email.max' => 'Email may not be greater than :max characters.',
+            'email.unique' => 'Email has already been taken.',
+            'mobile.string' => 'Mobile must be a string.',
+            'image.string' => 'Image must be a string.',
+            'image_file.image' => 'Profile image must be an image file.',
+            'image_file.max' => 'Profile image may not be greater than :max kilobytes.',
+        ]);
+
+        if ($valid->fails()) {
+            return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
+        }
+
+        try {
+            $user = User::find($caller->user_id);
+
+            if (! $user) {
+                return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
+            }
+
+            $user->old_vallue = $user->toArray();
+            $user->name = $request->input('name');
+            $user->email = $request->input('email');
+            $user->mobile = $request->input('mobile');
+
+            if ($request->hasFile('image_file')) {
+                $user->image = $request->file('image_file')->store('profile-images', 'public');
+            } elseif ($request->filled('image')) {
+                $user->image = $request->input('image');
+            }
+
+            $user->updated_by = $caller->user_id;
             $user->updated_at = now();
             $user->save();
 

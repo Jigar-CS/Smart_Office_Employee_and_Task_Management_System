@@ -20,6 +20,14 @@ class TaskAssignedMiddleware
             ], 401);
         }
 
+        $roleId = (int) ($user->role_id ?? 0);
+        $normalizedRoleName = strtolower(trim((string) ($user->role_name ?? '')));
+
+        if ($roleId === 1 || $roleId === 2 || str_contains($normalizedRoleName, 'admin') || str_contains($normalizedRoleName, 'manager')) {
+            $request->setUserResolver(fn () => $user);
+            return $next($request);
+        }
+
         $taskId = $request->input('id');
         if (! $taskId) {
             return response()->json([

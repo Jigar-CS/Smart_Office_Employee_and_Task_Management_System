@@ -1,0 +1,1462 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>User Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07131d;
+            --panel: rgba(14, 26, 40, 0.84);
+            --panel-2: rgba(19, 34, 51, 0.9);
+            --line: rgba(140, 170, 202, 0.16);
+            --text: #eef5ff;
+            --muted: #8ea7c4;
+            --brand: #67aefc;
+            --brand-2: #8df0c3;
+            --warning: #ffcc66;
+            --success: #5ee38b;
+            --danger: #ff6b6b;
+            --shadow: 0 18px 54px rgba(0, 0, 0, 0.32);
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+
+        body {
+            font-family: Inter, sans-serif;
+            color: var(--text);
+            color-scheme: dark;
+            background:
+                radial-gradient(circle at top left, rgba(103,174,252,0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(141,240,195,0.12), transparent 24%),
+                linear-gradient(180deg, #06101a 0%, #0a1725 50%, #06101a 100%);
+        }
+
+            body.drawer-open {
+                overflow: hidden;
+            }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 36px 36px;
+            mask-image: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 72%);
+            opacity: 0.4;
+        }
+
+        .shell {
+            min-height: 100vh;
+            padding: 26px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+        }
+
+        .sidebar,
+        .card,
+        .panel,
+        .overview-card {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .sidebar {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 26px;
+            height: calc(100vh - 52px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand img { width: 44px; height: 44px; object-fit: contain; }
+        .brand strong { display: block; font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+        .brand span { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+        .profile {
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .profile-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; }
+        .profile-name { margin-top: 8px; font-weight: 800; }
+        .profile-email { margin-top: 4px; color: var(--muted); font-size: 13px; word-break: break-all; }
+
+        .nav {
+            display: grid;
+            gap: 8px;
+        }
+
+        .nav button,
+        .logout-btn {
+            width: 100%;
+            border: 1px solid transparent;
+            background: rgba(255,255,255,0.03);
+            color: var(--text);
+            padding: 12px 14px;
+            border-radius: 14px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s ease;
+        }
+
+        .nav button:hover,
+        .nav button.active {
+            background: rgba(103,174,252,0.16);
+            border-color: rgba(103,174,252,0.22);
+        }
+
+        .nav small { color: var(--muted); font-size: 11px; }
+
+        .logout-btn {
+            margin-top: auto;
+            justify-content: center;
+            background: linear-gradient(180deg, rgba(255,107,107,0.22), rgba(255,107,107,0.1));
+            border-color: rgba(255,107,107,0.16);
+            font-weight: 700;
+        }
+
+        .content {
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: none;
+            background: rgba(4, 12, 20, 0.35);
+            backdrop-filter: blur(14px) saturate(110%);
+            -webkit-backdrop-filter: blur(14px) saturate(110%);
+        }
+
+        .drawer-backdrop.visible {
+            display: block;
+        }
+
+        .hero,
+        .panel,
+        .overview-card,
+        .stat,
+        .task-card {
+            padding: 20px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(28px, 4vw, 42px);
+            line-height: 1.05;
+        }
+
+        .hero p { margin: 8px 0 0; color: var(--muted); line-height: 1.6; }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.03);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .grid { display: grid; gap: 18px; }
+        .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+        .stat .label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .stat .value {
+            margin-top: 8px;
+            font-size: 32px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 800;
+        }
+
+        .stat .hint { margin-top: 6px; color: var(--muted); font-size: 13px; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .profile-panel {
+            display: grid;
+            gap: 18px;
+        }
+
+        .profile-hero {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .profile-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(180deg, rgba(103,174,252,0.24), rgba(141,240,195,0.14));
+            border: 1px solid rgba(103,174,252,0.24);
+            color: #f4f8ff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        .profile-title h2 {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(24px, 3vw, 34px);
+        }
+
+        .profile-title p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .profile-item {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .profile-item .label {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .profile-item .value {
+            margin-top: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .profile-wide {
+            grid-column: 1 / -1;
+        }
+
+        .profile-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            width: fit-content;
+            margin-top: 8px;
+        }
+
+        .profile-status.active {
+            background: rgba(94,227,139,0.16);
+            color: #a2f5ba;
+        }
+
+        .profile-status.inactive {
+            background: rgba(255,107,107,0.16);
+            color: #ffb2b2;
+        }
+
+        .profile-edit-form {
+            display: none;
+            border-top: 1px solid var(--line);
+            padding-top: 18px;
+        }
+
+        .profile-edit-form.open {
+            display: block;
+        }
+
+        .profile-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .profile-form-grid .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .profile-image-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px dashed var(--line);
+            border-radius: 16px;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .profile-image-preview img {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            object-fit: cover;
+        }
+
+        .profile-image-preview span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .editor-drawer {
+            display: none;
+            position: fixed;
+            top: 26px;
+            right: 26px;
+            width: min(500px, calc(100vw - 52px));
+            max-height: calc(100vh - 52px);
+            overflow: auto;
+            z-index: 50;
+        }
+
+        .editor-drawer.open {
+            display: block;
+        }
+
+        .editor-drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .editor-drawer-title {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+        }
+
+        .editor-drawer-note {
+            margin: 6px 0 0;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 13px;
+        }
+
+        .editor-drawer-empty {
+            min-height: 240px;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            border: 1px dashed var(--line);
+            border-radius: 18px;
+            padding: 18px;
+            color: var(--muted);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .editor-drawer .form-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .editor-drawer .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .editor-drawer .btn {
+            min-height: 48px;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .panel-title {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+        }
+
+        .panel-desc { margin: 6px 0 0; color: var(--muted); line-height: 1.6; }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .search,
+        .input,
+        .select,
+        .textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            padding: 12px 14px;
+            outline: none;
+        }
+
+        .select option {
+            color: #eaf2ff;
+            background: #0f2033;
+        }
+
+        .select option:checked,
+        .select option:focus {
+            color: #08131f;
+            background: #67aefc;
+        }
+
+        .select option:hover {
+            color: #eaf2ff;
+            background: rgba(103, 174, 252, 0.22);
+        }
+
+        .textarea { min-height: 110px; resize: vertical; }
+
+        .btn {
+            border: 0;
+            border-radius: 14px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .btn-primary { color: #07131d; background: linear-gradient(180deg, var(--brand), #8cc7ff); }
+        .btn-secondary { color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--line); }
+
+        .task-list { display: grid; gap: 14px; }
+
+        .task-card {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.04);
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .task-card:hover,
+        .task-card.active {
+            transform: translateY(-1px);
+            background: rgba(103,174,252,0.12);
+            border-color: rgba(103,174,252,0.22);
+        }
+
+        .task-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .task-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge.ok { background: rgba(94,227,139,0.16); color: #a2f5ba; }
+        .badge.warn { background: rgba(255,204,102,0.16); color: #ffe29b; }
+        .badge.danger { background: rgba(255,107,107,0.16); color: #ffb2b2; }
+        .badge.muted { background: rgba(142,167,196,0.14); color: #d7e2ef; }
+
+        .task-desc { margin: 12px 0 0; color: #d9e6f4; line-height: 1.65; }
+
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+
+        .notice {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .notice.success { color: var(--success); }
+        .notice.error { color: #ff8787; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .field { display: grid; gap: 8px; }
+        .field.full { grid-column: 1 / -1; }
+        .field label { color: #c9d7e7; font-size: 13px; font-weight: 700; }
+
+        .section {
+            display: grid;
+            gap: 14px;
+        }
+
+        .history {
+            display: grid;
+            gap: 12px;
+        }
+
+        .history-item {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .history-item strong { display: block; }
+        .history-item span { display: block; color: var(--muted); margin-top: 4px; font-size: 13px; line-height: 1.5; }
+
+        .loader {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(4, 12, 20, 0.62);
+            z-index: 9999;
+        }
+
+        .loader .spinner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.18);
+            border-top-color: #ffffff;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1180px) {
+            .shell { grid-template-columns: 1fr; }
+            .sidebar { position: relative; top: 0; height: auto; }
+            .layout { grid-template-columns: 1fr; }
+            .editor-drawer { right: 18px; left: 18px; width: auto; top: 18px; max-height: calc(100vh - 36px); }
+        }
+
+        @media (max-width: 900px) {
+            .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .form-grid { grid-template-columns: 1fr; }
+            .hero, .panel-head { flex-direction: column; align-items: flex-start; }
+            .toolbar { justify-content: flex-start; }
+            .editor-drawer .form-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .shell { padding: 16px; }
+            .stats { grid-template-columns: 1fr; }
+            .hero, .panel, .overview-card, .task-card, .stat { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="hoot-loader" class="loader"><div class="spinner" aria-label="Loading"></div></div>
+
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="{{ asset('New_logo.png') }}" alt="Smart Office">
+                <div>
+                    <strong>Smart Office</strong>
+                    <span>My Workspace</span>
+                </div>
+            </div>
+
+            <div class="profile">
+                <div class="profile-label">Signed in</div>
+                <div id="profileName" class="profile-name">Loading...</div>
+                <div id="profileEmail" class="profile-email"></div>
+            </div>
+
+            <nav class="nav">
+                <button type="button" class="active" data-view="tasks"><span>My Tasks</span><small id="taskCountLabel">0</small></button>
+                <button type="button" data-view="profile"><span>Profile</span><small>Local</small></button>
+            </nav>
+
+            <button id="logoutButton" class="logout-btn" type="button">Logout</button>
+        </aside>
+
+        <main class="content">
+            <header class="hero">
+                <div>
+                    <h1>My Tasks</h1>
+                    <p>Review assigned tasks and update the fields you are allowed to change.</p>
+                </div>
+                <div id="sessionPill" class="pill">Session ready</div>
+            </header>
+
+            <section id="statsPanel" class="grid stats">
+                <div class="stat"><div class="label">Assigned</div><div id="assignedStat" class="value">0</div><div class="hint">Tasks currently assigned to you</div></div>
+                <div class="stat"><div class="label">Due Soon</div><div id="dueSoonStat" class="value">0</div><div class="hint">Due within the next 3 days</div></div>
+                <div class="stat"><div class="label">Overdue</div><div id="overdueStat" class="value">0</div><div class="hint">Past due date</div></div>
+                <div class="stat"><div class="label">Updated</div><div id="updatedStat" class="value">0</div><div class="hint">Recently refreshed records</div></div>
+            </section>
+
+            <section id="dashboardLayout" class="layout">
+                <section id="tasksPanel" class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Assigned Tasks</h2>
+                            <p class="panel-desc">Search and filter the tasks assigned to your account.</p>
+                        </div>
+                        <div class="toolbar">
+                            <input id="searchInput" class="search" type="search" placeholder="Search tasks by title...">
+                            <input id="fromDate" class="input" type="date">
+                            <input id="toDate" class="input" type="date">
+                            <button id="refreshButton" type="button" class="btn btn-secondary">Refresh</button>
+                        </div>
+                    </div>
+
+                    <div id="taskNotice" class="notice" aria-live="polite"></div>
+                    <div id="taskList" class="task-list"></div>
+                </section>
+
+                <section id="profileCard" class="panel profile-panel" style="display:none;">
+                    <div class="profile-hero">
+                        <div id="profileAvatar" class="profile-avatar">
+                            <img id="profileAvatarImage" alt="Profile photo">
+                            <span id="profileAvatarFallback">U</span>
+                        </div>
+                        <div class="profile-title">
+                            <h2 id="profileFullName">User Profile</h2>
+                            <p id="profileSummary">Complete account details will appear here.</p>
+                        </div>
+                        <div class="profile-actions">
+                            <button id="profileEditButton" class="btn btn-secondary" type="button">Edit Profile</button>
+                        </div>
+                    </div>
+
+                    <div id="profileDisplaySection" class="profile-grid">
+                        <div class="profile-item profile-wide">
+                            <div class="label">Account Status</div>
+                            <div id="profileStatus" class="profile-status active">Active</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">User ID</div>
+                            <div id="profileUserId" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Full Name</div>
+                            <div id="profileNameValue" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Email Address</div>
+                            <div id="profileEmailValue" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Mobile Number</div>
+                            <div id="profileMobile" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Role</div>
+                            <div id="profileRole" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Department</div>
+                            <div id="profileDepartment" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Last Login</div>
+                            <div id="profileLastLogin" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Email Verified</div>
+                            <div id="profileVerified" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Created At</div>
+                            <div id="profileCreatedAt" class="value">-</div>
+                        </div>
+                        <div class="profile-item">
+                            <div class="label">Updated At</div>
+                            <div id="profileUpdatedAt" class="value">-</div>
+                        </div>
+                        <div class="profile-item profile-wide">
+                            <div class="label">Access Notes</div>
+                            <div id="profileNotes" class="value">-</div>
+                        </div>
+                    </div>
+
+                    <form id="profileEditSection" class="profile-edit-form" autocomplete="off">
+                        <div class="panel-head" style="margin-bottom:14px;">
+                            <div>
+                                <h2 class="panel-title" style="font-size:20px;">Edit Profile</h2>
+                                <p class="panel-desc">Update your personal information and profile image.</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-form-grid">
+                            <div class="field full">
+                                <label for="profileNameInput">Full Name</label>
+                                <input id="profileNameInput" class="input" name="name" type="text" placeholder="Full name">
+                            </div>
+                            <div class="field full">
+                                <label for="profileEmailInput">Email Address</label>
+                                <input id="profileEmailInput" class="input" name="email" type="email" placeholder="Email address">
+                            </div>
+                            <div class="field full">
+                                <label for="profileMobileInput">Mobile Number</label>
+                                <input id="profileMobileInput" class="input" name="mobile" type="text" placeholder="Mobile number">
+                            </div>
+                            <div class="field full">
+                                <label for="profileImageInput">Profile Image</label>
+                                <input id="profileImageInput" class="input" name="image_file" type="file" accept="image/*">
+                            </div>
+                            <div class="field full">
+                                <label for="profileImageUrlInput">Image URL</label>
+                                <input id="profileImageUrlInput" class="input" name="image" type="text" placeholder="https://... or stored image path">
+                            </div>
+                            <div class="field full">
+                                <div class="profile-image-preview">
+                                    <img id="profileImagePreview" alt="Selected profile preview" style="display:none;">
+                                    <span id="profileImagePreviewText">Upload a file or paste an image URL to update your profile photo.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+                            <button id="profileSaveButton" class="btn btn-primary" type="submit">Save Profile</button>
+                            <button id="profileCancelButton" class="btn btn-secondary" type="button">Cancel</button>
+                        </div>
+                    </form>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <div id="editorBackdrop" class="drawer-backdrop" aria-hidden="true"></div>
+
+    <aside id="taskDrawer" class="panel editor-drawer" aria-hidden="true">
+        <div class="editor-drawer-header">
+            <div>
+                <h2 id="drawerTitle" class="editor-drawer-title">Editing task</h2>
+                <p id="drawerNote" class="editor-drawer-note">Update the selected record in the side panel, then save the changes.</p>
+            </div>
+            <button id="closeDrawerButton" class="btn btn-secondary" type="button">Close</button>
+        </div>
+
+        <form id="taskForm" autocomplete="off">
+            <input type="hidden" id="recordId" name="id">
+            <div class="form-grid">
+                <div class="field full">
+                    <label for="taskTitle">Title</label>
+                    <input id="taskTitle" class="input" name="title" type="text" placeholder="Task title">
+                </div>
+                <div class="field full">
+                    <label for="taskDescription">Description</label>
+                    <textarea id="taskDescription" class="textarea" name="description" placeholder="Task description"></textarea>
+                </div>
+                <div class="field"><label for="startDate">Start Date</label><input id="startDate" class="input" name="start_date" type="date"></div>
+                <div class="field"><label for="dueDate">Due Date</label><input id="dueDate" class="input" name="due_date" type="date"></div>
+                <div class="field"><label for="priorityId">Priority</label><select id="priorityId" class="select" name="priority_id"></select></div>
+                <div class="field"><label for="statusId">Task Status</label><select id="statusId" class="select" name="task_status_id"></select></div>
+                <div class="field full"><label for="departmentId">Department</label><select id="departmentId" class="select" name="department_id"></select></div>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+                <button class="btn btn-primary" type="submit">Save Changes</button>
+                <button id="resetButton" class="btn btn-secondary" type="button">Reset</button>
+            </div>
+        </form>
+    </aside>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        const API_BASE = '{{ url('/api') }}';
+        const state = {
+            token: localStorage.getItem('smart-office-token') || '',
+            user: safeParse(localStorage.getItem('smart-office-user')),
+            tasks: [],
+            priorities: [],
+            statuses: [],
+            departments: [],
+            activeTaskId: null,
+            view: 'tasks',
+            drawerOpen: false,
+            profileEditMode: false,
+            searchTimer: null
+        };
+
+        function safeParse(value) {
+            try { return value ? JSON.parse(value) : null; } catch (error) { return null; }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return escapeHtml(value);
+            return date.toLocaleDateString();
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return escapeHtml(value);
+            return date.toLocaleString();
+        }
+
+        function daysUntil(value) {
+            if (!value) return null;
+            const target = new Date(value);
+            if (Number.isNaN(target.getTime())) return null;
+            const diff = target.setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
+            return Math.round(diff / 86400000);
+        }
+
+        function setLoader(show) {
+            $('#hoot-loader').css('display', show ? 'flex' : 'none');
+        }
+
+        function setNotice(text, type = '') {
+            $('#taskNotice').removeClass('success error').addClass(type).text(text || '');
+        }
+
+        function apiHeaders() {
+            const headers = { Accept: 'application/json' };
+            if (state.token) headers.Authorization = `Bearer ${state.token}`;
+            return headers;
+        }
+
+        async function apiRequest(endpoint, payload = {}) {
+            try {
+                const response = await $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: `${API_BASE}/${endpoint}`,
+                    data: payload,
+                    headers: apiHeaders()
+                });
+
+                if (response && response.status === 401) {
+                    handleUnauthorized();
+                }
+
+                return response;
+            } catch (xhr) {
+                const response = xhr.responseJSON || {};
+                if (xhr.status === 401) handleUnauthorized();
+                throw new Error(extractError(response));
+            }
+        }
+
+        async function apiFormRequest(endpoint, formData) {
+            try {
+                const response = await $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: `${API_BASE}/${endpoint}`,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: apiHeaders()
+                });
+
+                if (response && response.status === 401) {
+                    handleUnauthorized();
+                }
+
+                return response;
+            } catch (xhr) {
+                const response = xhr.responseJSON || {};
+                if (xhr.status === 401) handleUnauthorized();
+                throw new Error(extractError(response));
+            }
+        }
+
+        function extractError(payload) {
+            if (!payload) return 'Request failed. Please try again.';
+            if (typeof payload === 'string') return payload;
+            if (payload.error) {
+                if (typeof payload.error === 'string') return payload.error;
+                if (typeof payload.error === 'object') {
+                    return Object.values(payload.error).flat().filter(Boolean).join(' ');
+                }
+            }
+            if (payload.message) return payload.message;
+            return 'Request failed. Please try again.';
+        }
+
+        function handleUnauthorized() {
+            localStorage.removeItem('smart-office-token');
+            localStorage.removeItem('smart-office-user');
+            window.location.href = '/login';
+        }
+
+        function lookupLabel(list, keyField, labelField, id) {
+            const found = (list || []).find(item => String(item[keyField]) === String(id));
+            return found ? found[labelField] : id || '-';
+        }
+
+        function getProfileImageSource(value) {
+            const source = String(value || '').trim();
+            if (!source) return '';
+            if (/^(https?:|data:|blob:)/i.test(source)) return source;
+            if (source.startsWith('/')) return source;
+            return `{{ asset('storage') }}/${source}`;
+        }
+
+        function setProfileEditMode(enabled) {
+            state.profileEditMode = Boolean(enabled);
+            $('#profileDisplaySection').toggle(!enabled);
+            $('#profileEditSection').toggleClass('open', enabled);
+            $('#profileEditButton').text(enabled ? 'View Profile' : 'Edit Profile');
+            if (enabled) {
+                $('#profileNameInput').trigger('focus');
+            }
+        }
+
+        function isAdminSide() {
+            const roleId = Number(state.user?.role_id || 0);
+            return roleId === 1 || roleId === 2;
+        }
+
+        function renderProfile() {
+            const user = state.user || {};
+            const departmentName = lookupLabel(state.departments, 'department_id', 'name', user.department_id);
+            const roleName = user.role_name || `Role #${user.role_id || '-'}`;
+            const initials = String(user.name || 'U')
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(part => part.charAt(0))
+                .join('')
+                .toUpperCase() || 'U';
+            const active = Number(user.status ?? 1) === 1;
+            const imageSource = getProfileImageSource(user.image);
+
+            $('#profileName').text(user.name || 'User');
+            $('#profileEmail').text(user.email || '');
+            $('#sessionPill').text(isAdminSide() ? 'Admin access' : 'User access');
+
+            if (imageSource) {
+                $('#profileAvatarImage').attr('src', imageSource).show();
+                $('#profileAvatarFallback').hide();
+            } else {
+                $('#profileAvatarImage').attr('src', '').hide();
+                $('#profileAvatarFallback').text(initials).show();
+            }
+            $('#profileFullName').text(user.name || 'User Profile');
+            $('#profileSummary').text(`${roleName} • ${departmentName || 'Department not assigned'} • ${user.email || 'No email available'}`);
+            $('#profileUserId').text(user.user_id || '-');
+            $('#profileNameValue').text(user.name || '-');
+            $('#profileEmailValue').text(user.email || '-');
+            $('#profileMobile').text(user.mobile || '-');
+            $('#profileRole').text(roleName);
+            $('#profileDepartment').text(departmentName || user.department_id || '-');
+            $('#profileLastLogin').text(formatDateTime(user.last_login_at));
+            $('#profileVerified').text(user.email_verified_at ? formatDateTime(user.email_verified_at) : 'Not verified');
+            $('#profileCreatedAt').text(formatDateTime(user.created_at));
+            $('#profileUpdatedAt').text(formatDateTime(user.updated_at));
+            $('#profileNotes').text(active
+                ? 'This account is active and can access the dashboard according to its assigned role.'
+                : 'This account is currently inactive and may have limited or no access to dashboard features.');
+            $('#profileStatus').removeClass('active inactive').addClass(active ? 'active' : 'inactive').text(active ? 'Active' : 'Inactive');
+
+            $('#profileNameInput').val(user.name || '');
+            $('#profileEmailInput').val(user.email || '');
+            $('#profileMobileInput').val(user.mobile || '');
+            $('#profileImageUrlInput').val(user.image || '');
+            if (imageSource) {
+                $('#profileImagePreview').attr('src', imageSource).show();
+                $('#profileImagePreviewText').text('Current profile image preview. Choose a new file to replace it.');
+            } else {
+                $('#profileImagePreview').attr('src', '').hide();
+                $('#profileImagePreviewText').text('No profile image is set yet. Upload a file or paste an image URL.');
+            }
+        }
+
+        function populateSelect($select, items, keyField, labelField, includePlaceholder = true) {
+            const placeholder = includePlaceholder ? '<option value="">Select...</option>' : '';
+            const options = items.map(item => `<option value="${escapeHtml(item[keyField])}">${escapeHtml(item[labelField])}</option>`).join('');
+            $select.html(placeholder + options);
+        }
+
+        async function loadLookups() {
+            const [priorityResponse, statusResponse, departmentResponse] = await Promise.all([
+                apiRequest('getallpriority', { limit: 500, offset: 0 }),
+                apiRequest('getalltaskstatus', { limit: 500, offset: 0 }),
+                apiRequest('getalldepartment', { limit: 500, offset: 0 })
+            ]);
+
+            state.priorities = priorityResponse.data || [];
+            state.statuses = statusResponse.data || [];
+            state.departments = departmentResponse.data || [];
+
+            populateSelect($('#priorityId'), state.priorities, 'priority_id', 'title');
+            populateSelect($('#statusId'), state.statuses, 'task_status_id', 'title');
+            populateSelect($('#departmentId'), state.departments, 'department_id', 'name');
+        }
+
+        async function loadTasks() {
+            const search = $('#searchInput').val().trim();
+            const fromDate = $('#fromDate').val();
+            const toDate = $('#toDate').val();
+
+            const payload = { limit: 100, offset: 0 };
+            if (search) payload.search = search;
+            if (fromDate) payload.from_date = fromDate;
+            if (toDate) payload.to_date = toDate;
+
+            const response = await apiRequest('getalltask', payload);
+            state.tasks = response.data || [];
+            renderTasks();
+            updateTaskStats();
+        }
+
+        function updateTaskStats() {
+            const assigned = state.tasks.length;
+            const dueSoon = state.tasks.filter(task => {
+                const days = daysUntil(task.due_date);
+                return days !== null && days >= 0 && days <= 3;
+            }).length;
+            const overdue = state.tasks.filter(task => {
+                const days = daysUntil(task.due_date);
+                return days !== null && days < 0;
+            }).length;
+            const updated = state.tasks.filter(task => task.updated_at || task.created_at).length;
+
+            $('#assignedStat').text(assigned);
+            $('#dueSoonStat').text(dueSoon);
+            $('#overdueStat').text(overdue);
+            $('#updatedStat').text(updated);
+            $('#taskCountLabel').text(String(assigned));
+        }
+
+        async function submitProfile() {
+            const formData = new FormData();
+            formData.append('name', $('#profileNameInput').val().trim());
+            formData.append('email', $('#profileEmailInput').val().trim());
+            formData.append('mobile', $('#profileMobileInput').val().trim());
+            formData.append('image', $('#profileImageUrlInput').val().trim());
+
+            const imageFile = $('#profileImageInput')[0]?.files?.[0];
+            if (imageFile) {
+                formData.append('image_file', imageFile);
+            }
+
+            try {
+                setLoader(true);
+                $('#profileSaveButton').prop('disabled', true).text('Saving...');
+                const response = await apiFormRequest('updateprofile', formData);
+                if (response.status !== 200) {
+                    throw new Error(extractError(response));
+                }
+
+                if (response.data) {
+                    state.user = response.data;
+                    localStorage.setItem('smart-office-user', JSON.stringify(response.data));
+                }
+
+                renderProfile();
+                setProfileEditMode(false);
+                setNotice('Profile updated successfully.', 'success');
+            } catch (error) {
+                setNotice(error.message, 'error');
+            } finally {
+                $('#profileSaveButton').prop('disabled', false).text('Save Profile');
+                setLoader(false);
+            }
+        }
+
+        function getStatusBadge(task) {
+            const statusLabel = lookupLabel(state.statuses, 'task_status_id', 'title', task.task_status_id);
+            const statusText = String(statusLabel || '').toLowerCase();
+
+            if (statusText.includes('complete') || statusText.includes('done') || statusText.includes('closed')) {
+                return `<span class="badge ok">${escapeHtml(statusLabel)}</span>`;
+            }
+
+            if (statusText.includes('progress') || statusText.includes('doing') || statusText.includes('review')) {
+                return `<span class="badge warn">${escapeHtml(statusLabel)}</span>`;
+            }
+
+            return `<span class="badge muted">${escapeHtml(statusLabel)}</span>`;
+        }
+
+        function renderTasks() {
+            if (!state.tasks.length) {
+                $('#taskList').html('<div class="task-card"><div class="task-desc">No assigned tasks found.</div></div>');
+                return;
+            }
+
+            const html = state.tasks.map(task => {
+                const days = daysUntil(task.due_date);
+                let deadlineBadge = '<span class="badge muted">No deadline</span>';
+                if (days !== null) {
+                    if (days < 0) deadlineBadge = `<span class="badge danger">Overdue by ${Math.abs(days)} day(s)</span>`;
+                    else if (days === 0) deadlineBadge = '<span class="badge warn">Due today</span>';
+                    else if (days <= 3) deadlineBadge = `<span class="badge warn">Due in ${days} day(s)</span>`;
+                    else deadlineBadge = `<span class="badge muted">Due in ${days} day(s)</span>`;
+                }
+
+                const active = String(state.activeTaskId) === String(task.task_id) ? 'active' : '';
+                return `
+                    <article class="task-card ${active}" data-task-id="${escapeHtml(task.task_id)}">
+                        <div class="task-top">
+                            <div>
+                                <h3 class="task-title">${escapeHtml(task.title)}</h3>
+                                <div class="task-meta">
+                                    ${getStatusBadge(task)}
+                                    ${deadlineBadge}
+                                    <span class="badge muted">${escapeHtml(lookupLabel(state.priorities, 'priority_id', 'title', task.priority_id))}</span>
+                                </div>
+                            </div>
+                            <div style="display:grid; gap:8px; justify-items:end;">
+                                <span class="badge muted">#${escapeHtml(task.task_id)}</span>
+                                <button type="button" class="btn btn-secondary task-edit-button" data-edit-task="${escapeHtml(task.task_id)}">Edit</button>
+                            </div>
+                        </div>
+                        <p class="task-desc">${escapeHtml(task.description)}</p>
+                        <div class="task-footer">
+                            <span>Start: ${escapeHtml(formatDate(task.start_date))}</span>
+                            <span>Due: ${escapeHtml(formatDate(task.due_date))}</span>
+                            <span>${escapeHtml(lookupLabel(state.departments, 'department_id', 'name', task.department_id))}</span>
+                        </div>
+                    </article>
+                `;
+            }).join('');
+
+            $('#taskList').html(html);
+
+            $('#taskList .task-card').off('click').on('click', function () {
+                const taskId = $(this).data('task-id');
+                selectTask(taskId);
+            });
+
+            $('#taskList .task-edit-button').off('click').on('click', function (event) {
+                event.stopPropagation();
+                const taskId = $(this).data('edit-task');
+                selectTask(taskId, true);
+            });
+        }
+
+        function openTaskDrawer(taskId) {
+            const task = state.tasks.find(item => String(item.task_id) === String(taskId));
+            if (!task) return;
+
+            state.drawerOpen = true;
+            $('#drawerTitle').text(`Editing task #${task.task_id}`);
+            $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
+            $('#taskDrawer').addClass('open').attr('aria-hidden', 'false');
+            $('#editorBackdrop').addClass('visible').attr('aria-hidden', 'false');
+            $('body').addClass('drawer-open');
+            $('#taskTitle').trigger('focus');
+        }
+
+        function closeTaskDrawer() {
+            state.drawerOpen = false;
+            $('#taskDrawer').removeClass('open').attr('aria-hidden', 'true');
+            $('#editorBackdrop').removeClass('visible').attr('aria-hidden', 'true');
+            $('body').removeClass('drawer-open');
+        }
+
+        function selectTask(taskId, shouldFocusForm = false) {
+            const task = state.tasks.find(item => String(item.task_id) === String(taskId));
+            if (!task) return;
+            state.activeTaskId = task.task_id;
+            $('#recordId').val(task.task_id);
+            $('#taskTitle').val(task.title || '');
+            $('#taskDescription').val(task.description || '');
+            $('#startDate').val((task.start_date || '').split(' ')[0] || '');
+            $('#dueDate').val((task.due_date || '').split(' ')[0] || '');
+            $('#priorityId').val(task.priority_id || '');
+            $('#statusId').val(task.task_status_id || '');
+            $('#departmentId').val(task.department_id || '');
+            $('.task-card').removeClass('active');
+            $(`.task-card[data-task-id="${task.task_id}"]`).addClass('active');
+            setNotice(`Editing task #${task.task_id}.`, '');
+
+            openTaskDrawer(task.task_id);
+        }
+
+        function resetForm() {
+            $('#taskForm')[0].reset();
+            $('#recordId').val('');
+            state.activeTaskId = null;
+            $('.task-card').removeClass('active');
+            setNotice('', '');
+            closeTaskDrawer();
+        }
+
+        async function submitTask() {
+            const id = $('#recordId').val();
+            if (!id) {
+                setNotice('Select a task first.', 'error');
+                return;
+            }
+
+            const payload = {
+                id,
+                title: $('#taskTitle').val().trim(),
+                description: $('#taskDescription').val().trim(),
+                start_date: $('#startDate').val(),
+                due_date: $('#dueDate').val(),
+                priority_id: $('#priorityId').val(),
+                task_status_id: $('#statusId').val(),
+                department_id: $('#departmentId').val()
+            };
+
+            try {
+                setLoader(true);
+                setNotice('Saving task...', '');
+                const response = await apiRequest('updatetask', payload);
+                if (response.status !== 200) {
+                    throw new Error(extractError(response));
+                }
+
+                setNotice('Task updated successfully.', 'success');
+                await loadTasks();
+                await loadHistory();
+            } catch (error) {
+                setNotice(error.message, 'error');
+            } finally {
+                setLoader(false);
+            }
+        }
+
+        function activateView(view) {
+            state.view = view;
+            $('.nav button').removeClass('active');
+            $(`.nav button[data-view="${view}"]`).addClass('active');
+
+            const isProfileView = view === 'profile';
+            $('#statsPanel').toggle(!isProfileView);
+            $('#tasksPanel').toggle(view === 'tasks');
+            $('#profileCard').toggle(isProfileView);
+
+            if (view !== 'tasks') {
+                closeTaskDrawer();
+            }
+
+            if (isProfileView) {
+                setProfileEditMode(false);
+                $('#profileCard')[0]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function extractError(payload) {
+            if (!payload) return 'Request failed. Please try again.';
+            if (typeof payload === 'string') return payload;
+            if (payload.error) {
+                if (typeof payload.error === 'string') return payload.error;
+                if (typeof payload.error === 'object') {
+                    return Object.values(payload.error).flat().filter(Boolean).join(' ');
+                }
+            }
+            if (payload.message) return payload.message;
+            return 'Request failed. Please try again.';
+        }
+
+        function handleUnauthorized() {
+            localStorage.removeItem('smart-office-token');
+            localStorage.removeItem('smart-office-user');
+            window.location.href = '/login';
+        }
+
+        async function init() {
+            if (!state.token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            renderProfile();
+
+            if (isAdminSide()) {
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            try {
+                setLoader(true);
+                await loadLookups();
+                renderProfile();
+                await loadTasks();
+                activateView('tasks');
+                $('#searchInput').on('input', function () {
+                    clearTimeout(state.searchTimer);
+                    state.searchTimer = setTimeout(loadTasks, 250);
+                });
+                $('#fromDate, #toDate').on('change', loadTasks);
+                $('#refreshButton').on('click', async function () {
+                    setLoader(true);
+                    try {
+                        await loadTasks();
+                    } finally {
+                        setLoader(false);
+                    }
+                });
+                $('#taskForm').on('submit', function (event) {
+                    event.preventDefault();
+                    submitTask();
+                });
+                $('#resetButton').on('click', resetForm);
+                $('#closeDrawerButton, #editorBackdrop').on('click', function () {
+                    resetForm();
+                });
+                $('#profileEditButton').on('click', function () {
+                    setProfileEditMode(!state.profileEditMode);
+                });
+                $('#profileCancelButton').on('click', function () {
+                    renderProfile();
+                    setProfileEditMode(false);
+                });
+                $('#profileImageInput').on('change', function () {
+                    const file = this.files && this.files[0];
+                    if (!file) {
+                        renderProfile();
+                        return;
+                    }
+
+                    const previewUrl = URL.createObjectURL(file);
+                    $('#profileImagePreview').attr('src', previewUrl).show();
+                    $('#profileImagePreviewText').text(file.name);
+                    $('#profileAvatarImage').attr('src', previewUrl).show();
+                    $('#profileAvatarFallback').hide();
+                });
+                $('#profileImageUrlInput').on('input', function () {
+                    const source = getProfileImageSource($(this).val().trim());
+                    if (source) {
+                        $('#profileImagePreview').attr('src', source).show();
+                        $('#profileImagePreviewText').text('Image preview from URL.');
+                        $('#profileAvatarImage').attr('src', source).show();
+                        $('#profileAvatarFallback').hide();
+                    } else {
+                        renderProfile();
+                    }
+                });
+                $('#profileEditSection').on('submit', function (event) {
+                    event.preventDefault();
+                    submitProfile();
+                });
+                $('.nav button[data-view]').on('click', function () {
+                    activateView($(this).data('view'));
+                });
+                $('#logoutButton').on('click', async function () {
+                    try {
+                        setLoader(true);
+                        await apiRequest('logout', {});
+                    } catch (error) {
+                        // ignore logout errors
+                    } finally {
+                        localStorage.removeItem('smart-office-token');
+                        localStorage.removeItem('smart-office-user');
+                        window.location.href = '/login';
+                    }
+                });
+            } catch (error) {
+                setNotice(error.message, 'error');
+                if (error.message.toLowerCase().includes('unauthorized')) {
+                    handleUnauthorized();
+                }
+            } finally {
+                setLoader(false);
+            }
+        }
+
+        $(document).ready(function () {
+            init();
+        });
+    </script>
+</body>
+</html>

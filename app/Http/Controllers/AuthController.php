@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RoleModel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,8 @@ class AuthController extends Controller
         $token = $user->createToken($tokenName)->plainTextToken;
         $user->last_login_at = now();
         $user->save();
+
+        $user->role_name = RoleModel::where('role_id', $user->role_id)->value('name');
 
         return response()->json([
             'status' => 200,

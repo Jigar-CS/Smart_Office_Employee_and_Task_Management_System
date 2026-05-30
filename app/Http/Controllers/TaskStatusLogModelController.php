@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TaskAssignmentModel;
-use App\Models\TaskModel;
 use App\Models\TaskStatusLogModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -22,42 +20,39 @@ class TaskStatusLogModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $tasksQuery = TaskModel::query()
-            ->leftJoin('tbl_departments as d', 'tbl_tasks.department_id', '=', 'd.department_id')
-            ->leftJoin('tbl_users as created_by_user', 'tbl_tasks.created_by', '=', 'created_by_user.user_id')
-            ->leftJoin('tbl_task_status as ts', 'tbl_tasks.task_status_id', '=', 'ts.task_status_id')
+        $logsQuery = TaskStatusLogModel::query()
+            ->leftJoin('tbl_tasks as t', 'tbl_task_status_log.task_id', '=', 't.task_id')
+            ->leftJoin('tbl_departments as d', 'tbl_task_status_log.department_id', '=', 'd.department_id')
+            ->leftJoin('tbl_users as assigned_by_user', 'tbl_task_status_log.assigned_by', '=', 'assigned_by_user.user_id')
+            ->leftJoin('tbl_users as changed_by_user', 'tbl_task_status_log.changed_by', '=', 'changed_by_user.user_id')
+            ->leftJoin('tbl_task_status as from_status', 'tbl_task_status_log.from_status_id', '=', 'from_status.task_status_id')
+            ->leftJoin('tbl_task_status as to_status', 'tbl_task_status_log.to_status_id', '=', 'to_status.task_status_id')
             ->select(
-                'tbl_tasks.*',
+                'tbl_task_status_log.*',
+                't.title as task_title',
                 'd.name as department_name',
-                'created_by_user.name as created_by_name',
-                'ts.title as task_status_name'
+                'assigned_by_user.name as assigned_by_name',
+                'changed_by_user.name as changed_by_name',
+                'from_status.title as from_status_name',
+                'to_status.title as to_status_name'
             )
-            ->where('tbl_tasks.status', 1)
-            ->orderBy('tbl_tasks.task_id', 'desc');
+            ->where('tbl_task_status_log.status', 1)
+            ->orderBy('tbl_task_status_log.status_log_id', 'desc');
 
         if ($request->filled('user_id')) {
-            $tasksQuery->whereExists(function ($query) use ($request) {
+            $logsQuery->whereExists(function ($query) use ($request) {
                 $query->selectRaw('1')
                     ->from('tbl_task_assignments as ta')
-                    ->whereColumn('ta.task_id', 'tbl_tasks.task_id')
+                    ->whereColumn('ta.task_id', 'tbl_task_status_log.task_id')
                     ->where('ta.status', 1)
                     ->where('ta.user_id', $request->input('user_id'));
             });
         }
 
-        $count = $tasksQuery->count();
-        $tasks = $tasksQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+        $count = $logsQuery->count();
+        $logs = $logsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 
-        foreach ($tasks as $task) {
-            $task->assigned_users = TaskAssignmentModel::query()
-                ->leftJoin('tbl_users as u', 'tbl_task_assignments.user_id', '=', 'u.user_id')
-                ->where('tbl_task_assignments.task_id', $task->task_id)
-                ->where('tbl_task_assignments.status', 1)
-                ->select('u.user_id', 'u.name', 'u.email', 'u.mobile', 'u.image')
-                ->get();
-        }
-
-        return response()->json(['status' => 200, 'count' => $count, 'data' => $tasks], 200);
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $logs], 200);
     }
 
     public function addtaskstatuslog(Request $request)

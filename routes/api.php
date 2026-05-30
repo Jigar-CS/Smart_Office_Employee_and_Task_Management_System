@@ -15,27 +15,50 @@ use App\Http\Controllers\AuthController;
 // Public admin login; optional token is resolved when present for normal-user login checks
 Route::post('userlogin', [AuthController::class, 'userlogin'])->middleware('optional.token.auth');
 
-// All API routes require a valid token
+// Readable by any authenticated user; task access is further filtered in middleware/controller
 Route::middleware('auth:sanctum')->group(function () {
-	Route::post('logout', [AuthController::class, 'logout']);
-
 	Route::post('getalldepartment', [DepartmentModelController::class, 'getalldepartment']);
 	Route::post('getdepartment', [DepartmentModelController::class, 'getdepartment']);
+
+	Route::post('getallpriority', [PriorityModelController::class, 'getallpriority']);
+	Route::post('getpriority', [PriorityModelController::class, 'getpriority']);
+
+	Route::post('getalltaskstatus', [TaskStatusModelController::class, 'getalltaskstatus']);
+	Route::post('gettaskstatus', [TaskStatusModelController::class, 'gettaskstatus']);
+
+	Route::post('getalltask', [TaskModelController::class, 'getalltask']);
+	Route::post('gettask', [TaskModelController::class, 'gettask'])->middleware('task.assigned');
+	Route::post('updatetask', [TaskModelController::class, 'updatetask'])->middleware('task.assigned');
+	Route::post('deletetask', [TaskModelController::class, 'deletetask'])->middleware('task.assigned');
+
+	Route::post('getalltaskstatuslog', [TaskStatusLogModelController::class, 'getalltaskstatuslog']);
+	Route::post('getalluser', [UserController::class, 'getalluser'])->middleware('task.manage');
+	Route::post('updateprofile', [UserController::class, 'updateprofile']);
+
+
+	Route::post('logout', [AuthController::class, 'logout']);
+});
+
+// Admin-only CRUD actions
+Route::middleware(['auth:sanctum', 'admin.token'])->group(function () {
 	Route::post('adddepartment', [DepartmentModelController::class, 'adddepartment']);
 	Route::post('updatedepartment', [DepartmentModelController::class, 'updatedepartment']);
 	Route::post('deletedepartment', [DepartmentModelController::class, 'deletedepartment']);
 
+	Route::post('addtaskstatuslog', [TaskStatusLogModelController::class, 'addtaskstatuslog']);
+	Route::post('updatetaskstatuslog', [TaskStatusLogModelController::class, 'updatetaskstatuslog']);
+	Route::post('deletetaskstatuslog', [TaskStatusLogModelController::class, 'deletetaskstatuslog']);
+
+	Route::post('addtaskstatus', [TaskStatusModelController::class, 'addtaskstatus']);
+	Route::post('updatetaskstatus', [TaskStatusModelController::class, 'updatetaskstatus']);
+	Route::post('deletetaskstatus', [TaskStatusModelController::class, 'deletetaskstatus']);
+
 	Route::post('getalldocument', [DocumentModelController::class, 'getalldocument']);
 	Route::post('getdocument', [DocumentModelController::class, 'getdocument']);
-	Route::post('adddocument', [DocumentModelController::class, 'adddocument']);
-	Route::post('updatedocument', [DocumentModelController::class, 'updatedocument']);
-	Route::post('deletedocument', [DocumentModelController::class, 'deletedocument']);
-
-	Route::post('getallpriority', [PriorityModelController::class, 'getallpriority']);
-	Route::post('getpriority', [PriorityModelController::class, 'getpriority']);
-	Route::post('addpriority', [PriorityModelController::class, 'addpriority']);
-	Route::post('updatepriority', [PriorityModelController::class, 'updatepriority']);
-	Route::post('deletepriority', [PriorityModelController::class, 'deletepriority']);
+	Route::post('getuser', [UserController::class, 'getuser']);
+	Route::post('createuser', [UserController::class, 'adduser'])->middleware('admin.token');
+	Route::post('updateuser', [UserController::class, 'updateuser']);
+	Route::post('deleteuser', [UserController::class, 'deleteuser']);
 
 	Route::post('getallrole', [RoleModelController::class, 'getallrole']);
 	Route::post('getrole', [RoleModelController::class, 'getrole']);
@@ -47,27 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
 	Route::post('gettaskassignment', [TaskAssignmentModelController::class, 'gettaskassignment']);
 	Route::post('updatetaskassignment', [TaskAssignmentModelController::class, 'updatetaskassignment']);
 	Route::post('deletetaskassignment', [TaskAssignmentModelController::class, 'deletetaskassignment']);
+});
 
-	Route::post('getalltask', [TaskModelController::class, 'getalltask']);
-	Route::post('gettask', [TaskModelController::class, 'gettask'])->middleware('task.assigned');
-	Route::post('createtask', [TaskModelController::class, 'addtask'])->middleware('task.manage');
-	Route::post('updatetask', [TaskModelController::class, 'updatetask'])->middleware('task.assigned');
-	Route::post('deletetask', [TaskModelController::class, 'deletetask'])->middleware('task.assigned');
-
-	Route::post('getalltaskstatuslog', [TaskStatusLogModelController::class, 'getalltaskstatuslog']);
-	Route::post('addtaskstatuslog', [TaskStatusLogModelController::class, 'addtaskstatuslog']);
-	Route::post('updatetaskstatuslog', [TaskStatusLogModelController::class, 'updatetaskstatuslog']);
-	Route::post('deletetaskstatuslog', [TaskStatusLogModelController::class, 'deletetaskstatuslog']);
-
-	Route::post('getalltaskstatus', [TaskStatusModelController::class, 'getalltaskstatus']);
-	Route::post('gettaskstatus', [TaskStatusModelController::class, 'gettaskstatus']);
-	Route::post('addtaskstatus', [TaskStatusModelController::class, 'addtaskstatus']);
-	Route::post('updatetaskstatus', [TaskStatusModelController::class, 'updatetaskstatus']);
-	Route::post('deletetaskstatus', [TaskStatusModelController::class, 'deletetaskstatus']);
-
-	Route::post('getalluser', [UserController::class, 'getalluser']);
-	Route::post('getuser', [UserController::class, 'getuser']);
-	Route::post('createuser', [UserController::class, 'adduser'])->middleware('admin.token');
-	Route::post('updateuser', [UserController::class, 'updateuser']);
-	Route::post('deleteuser', [UserController::class, 'deleteuser']);
+// Admin/manager task creation remains separate so the existing task middleware still applies
+Route::middleware(['auth:sanctum', 'task.manage'])->group(function () {
+	Route::post('createtask', [TaskModelController::class, 'addtask']);
 });

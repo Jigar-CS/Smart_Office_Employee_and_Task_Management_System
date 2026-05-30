@@ -15,9 +15,18 @@ class TokenAuthMiddleware
             return false;
         }
 
-        $adminRoleId = RoleModel::where('name', 'Admin')->value('role_id');
+        $role = RoleModel::find($user->role_id);
+        $roleName = strtolower(trim((string) ($role?->name ?? '')));
 
-        return $user->user_id === 1 || ($adminRoleId !== null && (int) $user->role_id === (int) $adminRoleId);
+        if ($user->user_id === 1) {
+            return true;
+        }
+
+        if (in_array((int) $user->role_id, [1, 2], true)) {
+            return true;
+        }
+
+        return $roleName !== '' && (str_contains($roleName, 'admin') || str_contains($roleName, 'manager'));
     }
 
     public function handle(Request $request, Closure $next)
