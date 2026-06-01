@@ -56,7 +56,7 @@ class DepartmentModelController extends Controller
     public function adddepartment(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:tbl_departments,name',
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
 
@@ -65,9 +65,33 @@ class DepartmentModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
+            $departmentName = $request->input('name');
+            
+            // Check if department with same name exists
+            $existingDepartment = DepartmentModel::where('name', $departmentName)->first();
+            
+            if ($existingDepartment && $existingDepartment->status == 1) {
+                // Department already exists and is active
+                return response()->json(['status' => 400, 'error' => ['name' => ['Department name has already been taken.']]], 400);
+            }
+            
+            if ($existingDepartment && $existingDepartment->status == 0) {
+                // Department exists but is deleted - restore it
+                $existingDepartment->description = $request->input('description');
+                $existingDepartment->created_by = $caller?->user_id;
+                $existingDepartment->created_at = now();
+                $existingDepartment->status = 1;
+                $existingDepartment->save();
+                
+                return response()->json(['status' => 200, 'data' => $existingDepartment], 200);
+            }
+            
+            // Create new department
             $department = new DepartmentModel();
-            $department->name = $request->input('name');
+            $department->name = $departmentName;
             $department->description = $request->input('description');
+            $department->created_by = $caller?->user_id;
             $department->status = 1;
             $result = $department->save();
 
@@ -81,7 +105,7 @@ class DepartmentModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_departments,department_id',
-            'name' => ['nullable', 'string', 'max:255', Rule::unique('tbl_departments', 'name')->ignore($request->input('id'), 'department_id')],
+            'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ], [
             'id.required' => 'Department id is required.',
@@ -89,7 +113,6 @@ class DepartmentModelController extends Controller
             'id.exists' => 'Department not found.',
             'name.string' => 'Name must be a string.',
             'name.max' => 'Name may not be greater than :max characters.',
-            'name.unique' => 'Department name has already been taken.',
             'description.string' => 'Description must be a string.',
         ]);
 
@@ -98,16 +121,30 @@ class DepartmentModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
             $department = DepartmentModel::find($request->input('id'));
-            if ($request->has('name')) {
+            
+            // If name is being updated, check for conflicts with active departments
+            if ($request->has('name') && $request->input('name') !== $department->name) {
+                $existingDepartment = DepartmentModel::where('name', $request->input('name'))
+                    ->where('status', 1)
+                    ->first();
+                
+                if ($existingDepartment) {
+                    return response()->json(['status' => 400, 'error' => ['name' => ['Department name has already been taken.']]], 400);
+                }
+                
                 $department->name = $request->input('name');
             }
+            
             if ($request->has('description')) {
                 $department->description = $request->input('description');
             }
             if ($request->has('status')) {
                 $department->status = $request->input('status');
             }
+            $department->updated_by = $caller?->user_id;
+            $department->updated_at = now();
             $department->save();
 
             return response()->json(['status' => 200, 'data' => $department], 200);

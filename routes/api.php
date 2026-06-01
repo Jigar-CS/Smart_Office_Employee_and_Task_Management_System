@@ -66,6 +66,11 @@ Route::middleware(['auth:sanctum', 'admin.token'])->group(function () {
 	Route::post('updaterole', [RoleModelController::class, 'updaterole']);
 	Route::post('deleterole', [RoleModelController::class, 'deleterole']);
 
+	// Priorities (admin CRUD)
+	Route::post('addpriority', [PriorityModelController::class, 'addpriority']);
+	Route::post('updatepriority', [PriorityModelController::class, 'updatepriority']);
+	Route::post('deletepriority', [PriorityModelController::class, 'deletepriority']);
+
 	Route::post('getalltaskassignment', [TaskAssignmentModelController::class, 'getalltaskassignment']);
 	Route::post('gettaskassignment', [TaskAssignmentModelController::class, 'gettaskassignment']);
 	Route::post('updatetaskassignment', [TaskAssignmentModelController::class, 'updatetaskassignment']);

@@ -56,7 +56,7 @@ class TaskStatusModelController extends Controller
     public function addtaskstatus(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'title' => 'required|string|max:255|unique:tbl_task_status,title',
+            'title' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
 
@@ -65,9 +65,30 @@ class TaskStatusModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
+            $title = $request->input('title');
+
+            $existing = TaskStatusModel::where('title', $title)->first();
+
+            if ($existing && $existing->status == 1) {
+                return response()->json(['status' => 400, 'error' => ['title' => ['Task status title has already been taken.']]], 400);
+            }
+
+            if ($existing && $existing->status == 0) {
+                // restore
+                $existing->description = $request->input('description');
+                $existing->created_by = $caller?->user_id;
+                $existing->created_at = now();
+                $existing->status = 1;
+                $existing->save();
+
+                return response()->json(['status' => 200, 'data' => $existing], 200);
+            }
+
             $taskStatus = new TaskStatusModel();
-            $taskStatus->title = $request->input('title');
+            $taskStatus->title = $title;
             $taskStatus->description = $request->input('description');
+            $taskStatus->created_by = $caller?->user_id;
             $taskStatus->status = 1;
             $result = $taskStatus->save();
 
@@ -98,16 +119,25 @@ class TaskStatusModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
             $taskStatus = TaskStatusModel::find($request->input('id'));
-            if ($request->has('title')) {
+
+            if ($request->has('title') && $request->input('title') !== $taskStatus->title) {
+                $existing = TaskStatusModel::where('title', $request->input('title'))->where('status', 1)->first();
+                if ($existing) {
+                    return response()->json(['status' => 400, 'error' => ['title' => ['Task status title has already been taken.']]], 400);
+                }
                 $taskStatus->title = $request->input('title');
             }
+
             if ($request->has('description')) {
                 $taskStatus->description = $request->input('description');
             }
             if ($request->has('status')) {
                 $taskStatus->status = $request->input('status');
             }
+            $taskStatus->updated_by = $caller?->user_id;
+            $taskStatus->updated_at = now();
             $taskStatus->save();
 
             return response()->json(['status' => 200, 'data' => $taskStatus], 200);

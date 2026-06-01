@@ -61,13 +61,12 @@ class RoleModelController extends Controller
     public function addrole(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:tbl_roles,name',
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ], [
             'name.required' => 'Name is required.',
             'name.string' => 'Name must be a string.',
             'name.max' => 'Name may not be greater than :max characters.',
-            'name.unique' => 'Role name has already been taken.',
             'description.string' => 'Description must be a string.',
         ]);
 
@@ -76,9 +75,33 @@ class RoleModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
+            $roleName = $request->input('name');
+            
+            // Check if role with same name exists
+            $existingRole = RoleModel::where('name', $roleName)->first();
+            
+            if ($existingRole && $existingRole->status == 1) {
+                // Role already exists and is active
+                return response()->json(['status' => 400, 'error' => ['name' => ['Role name has already been taken.']]], 400);
+            }
+            
+            if ($existingRole && $existingRole->status == 0) {
+                // Role exists but is deleted - restore it
+                $existingRole->description = $request->input('description');
+                $existingRole->created_by = $caller?->user_id;
+                $existingRole->created_at = now();
+                $existingRole->status = 1;
+                $existingRole->save();
+                
+                return response()->json(['status' => 200, 'data' => $existingRole], 200);
+            }
+            
+            // Create new role
             $role = new RoleModel();
-            $role->name = $request->input('name');
+            $role->name = $roleName;
             $role->description = $request->input('description');
+            $role->created_by = $caller?->user_id;
             $role->status = 1;
             $result = $role->save();
 
@@ -92,7 +115,7 @@ class RoleModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_roles,role_id',
-            'name' => ['nullable', 'string', 'max:255', Rule::unique('tbl_roles', 'name')->ignore($request->input('id'), 'role_id')],
+            'name' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ], [
             'id.required' => 'Role id is required.',
@@ -100,7 +123,6 @@ class RoleModelController extends Controller
             'id.exists' => 'Role not found.',
             'name.string' => 'Name must be a string.',
             'name.max' => 'Name may not be greater than :max characters.',
-            'name.unique' => 'Role name has already been taken.',
             'description.string' => 'Description must be a string.',
         ]);
 
@@ -109,16 +131,30 @@ class RoleModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
             $role = RoleModel::find($request->input('id'));
-            if ($request->has('name')) {
+            
+            // If name is being updated, check for conflicts with active roles
+            if ($request->has('name') && $request->input('name') !== $role->name) {
+                $existingRole = RoleModel::where('name', $request->input('name'))
+                    ->where('status', 1)
+                    ->first();
+                
+                if ($existingRole) {
+                    return response()->json(['status' => 400, 'error' => ['name' => ['Role name has already been taken.']]], 400);
+                }
+                
                 $role->name = $request->input('name');
             }
+            
             if ($request->has('description')) {
                 $role->description = $request->input('description');
             }
             if ($request->has('status')) {
                 $role->status = $request->input('status');
             }
+            $role->updated_by = $caller?->user_id;
+            $role->updated_at = now();
             $role->save();
 
             return response()->json(['status' => 200, 'data' => $role], 200);

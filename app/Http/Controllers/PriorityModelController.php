@@ -26,7 +26,7 @@ class PriorityModelController extends Controller
         }
 
         return response()->json(['status' => 200, 'data' => $priority], 200);
-    }
+    }   
 
     public function getallpriority(Request $request)
     {
@@ -56,7 +56,7 @@ class PriorityModelController extends Controller
     public function addpriority(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'title' => 'required|string|max:255|unique:tbl_priorities,title',
+            'title' => 'required|string|max:255',
             'level' => 'required|string|max:255',
         ]);
 
@@ -65,9 +65,31 @@ class PriorityModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
+            $title = $request->input('title');
+
+            // Check if a priority with same title exists
+            $existing = PriorityModel::where('title', $title)->first();
+
+            if ($existing && $existing->status == 1) {
+                return response()->json(['status' => 400, 'error' => ['title' => ['Priority title has already been taken.']]], 400);
+            }
+
+            if ($existing && $existing->status == 0) {
+                // Restore deleted priority
+                $existing->level = $request->input('level');
+                $existing->created_by = $caller?->user_id;
+                $existing->created_at = now();
+                $existing->status = 1;
+                $existing->save();
+
+                return response()->json(['status' => 200, 'data' => $existing], 200);
+            }
+
             $priority = new PriorityModel();
-            $priority->title = $request->input('title');
+            $priority->title = $title;
             $priority->level = $request->input('level');
+            $priority->created_by = $caller?->user_id;
             $priority->status = 1;
             $result = $priority->save();
 
@@ -81,7 +103,7 @@ class PriorityModelController extends Controller
     {
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_priorities,priority_id',
-            'title' => ['nullable', 'string', 'max:255', Rule::unique('tbl_priorities', 'title')->ignore($request->input('id'), 'priority_id')],
+            'title' => 'nullable|string|max:255',
             'level' => 'nullable|string|max:255',
         ], [
             'id.required' => 'Priority id is required.',
@@ -89,7 +111,6 @@ class PriorityModelController extends Controller
             'id.exists' => 'Priority not found.',
             'title.string' => 'Title must be a string.',
             'title.max' => 'Title may not be greater than :max characters.',
-            'title.unique' => 'Priority title has already been taken.',
             'level.string' => 'Level must be a string.',
             'level.max' => 'Level may not be greater than :max characters.',
         ]);
@@ -99,16 +120,26 @@ class PriorityModelController extends Controller
         }
 
         try {
+            $caller = $request->user();
             $priority = PriorityModel::find($request->input('id'));
-            if ($request->has('title')) {
+
+            // If title is being updated, ensure no active conflict
+            if ($request->has('title') && $request->input('title') !== $priority->title) {
+                $existing = PriorityModel::where('title', $request->input('title'))->where('status', 1)->first();
+                if ($existing) {
+                    return response()->json(['status' => 400, 'error' => ['title' => ['Priority title has already been taken.']]], 400);
+                }
                 $priority->title = $request->input('title');
             }
+
             if ($request->has('level')) {
                 $priority->level = $request->input('level');
             }
             if ($request->has('status')) {
                 $priority->status = $request->input('status');
             }
+            $priority->updated_by = $caller?->user_id;
+            $priority->updated_at = now();
             $priority->save();
 
             return response()->json(['status' => 200, 'data' => $priority], 200);

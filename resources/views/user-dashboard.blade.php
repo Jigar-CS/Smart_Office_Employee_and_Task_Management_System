@@ -10,18 +10,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #07131d;
-            --panel: rgba(14, 26, 40, 0.84);
-            --panel-2: rgba(19, 34, 51, 0.9);
-            --line: rgba(140, 170, 202, 0.16);
-            --text: #eef5ff;
-            --muted: #8ea7c4;
-            --brand: #67aefc;
-            --brand-2: #8df0c3;
-            --warning: #ffcc66;
-            --success: #5ee38b;
-            --danger: #ff6b6b;
-            --shadow: 0 18px 54px rgba(0, 0, 0, 0.32);
+            --bg: #f4f9ff;
+            --panel: #ffffff;
+            --panel-2: #ffffff;
+            --line: rgba(31,111,224,0.08);
+            --text: #0b2540;
+            --muted: #567089;
+            --brand: #1f6fe0;
+            --brand-2: #0f57c6;
+            --warning: #f0ad4e;
+            --success: #28a745;
+            --danger: #d9534f;
+            --shadow: 0 8px 20px rgba(31,111,224,0.06);
         }
 
         * { box-sizing: border-box; }
@@ -30,27 +30,15 @@
         body {
             font-family: Inter, sans-serif;
             color: var(--text);
-            color-scheme: dark;
-            background:
-                radial-gradient(circle at top left, rgba(103,174,252,0.18), transparent 28%),
-                radial-gradient(circle at top right, rgba(141,240,195,0.12), transparent 24%),
-                linear-gradient(180deg, #06101a 0%, #0a1725 50%, #06101a 100%);
+            color-scheme: light;
+            background: var(--bg);
         }
 
             body.drawer-open {
                 overflow: hidden;
             }
 
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 36px 36px;
-            mask-image: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 72%);
-            opacity: 0.4;
-        }
+        /* Minimal UI: no decorative overlay */
 
         .shell {
             min-height: 100vh;
@@ -65,10 +53,9 @@
         .panel,
         .overview-card {
             border: 1px solid var(--line);
-            border-radius: 22px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+            border-radius: 12px;
+            background: var(--panel);
             box-shadow: var(--shadow);
-            backdrop-filter: blur(18px);
         }
 
         .sidebar {
@@ -79,6 +66,7 @@
             position: sticky;
             top: 26px;
             height: calc(100vh - 52px);
+            background: var(--panel);
         }
 
         .brand {
@@ -96,8 +84,8 @@
         .profile {
             padding: 14px;
             border: 1px solid var(--line);
-            border-radius: 18px;
-            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            background: var(--panel);
         }
 
         .profile-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; }
@@ -113,22 +101,23 @@
         .logout-btn {
             width: 100%;
             border: 1px solid transparent;
-            background: rgba(255,255,255,0.03);
+            background: #f4f8ff;
             color: var(--text);
             padding: 12px 14px;
-            border-radius: 14px;
+            border-radius: 12px;
             cursor: pointer;
             text-align: left;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: 0.2s ease;
+            transition: 0.12s ease;
         }
 
         .nav button:hover,
         .nav button.active {
-            background: rgba(103,174,252,0.16);
-            border-color: rgba(103,174,252,0.22);
+            background: rgba(43,125,233,0.08);
+            border-color: rgba(43,125,233,0.12);
+            color: var(--brand);
         }
 
         .nav small { color: var(--muted); font-size: 11px; }
@@ -136,8 +125,9 @@
         .logout-btn {
             margin-top: auto;
             justify-content: center;
-            background: linear-gradient(180deg, rgba(255,107,107,0.22), rgba(255,107,107,0.1));
-            border-color: rgba(255,107,107,0.16);
+            background: rgba(217,83,79,0.06);
+            border-color: rgba(217,83,79,0.12);
+            color: var(--danger);
             font-weight: 700;
         }
 
@@ -198,7 +188,7 @@
         }
 
         .grid { display: grid; gap: 18px; }
-        .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 
         .stat .label {
             color: var(--muted);
@@ -241,9 +231,9 @@
             overflow: hidden;
             display: grid;
             place-items: center;
-            background: linear-gradient(180deg, rgba(103,174,252,0.24), rgba(141,240,195,0.14));
-            border: 1px solid rgba(103,174,252,0.24);
-            color: #f4f8ff;
+            background: var(--brand);
+            border: 1px solid rgba(43,125,233,0.12);
+            color: #fff;
             font-family: 'Space Grotesk', sans-serif;
             font-size: 24px;
             font-weight: 800;
@@ -443,10 +433,12 @@
         }
 
         .panel-title {
-            margin: 0;
+            margin: 0 0 6px 0;
             font-family: 'Space Grotesk', sans-serif;
             font-size: 24px;
+            color: var(--text);
         }
+        .panel-title::after { content: ''; display: block; margin-top: 10px; width: 48px; height: 3px; background: var(--brand); border-radius: 3px; }
 
         .panel-desc { margin: 6px 0 0; color: var(--muted); line-height: 1.6; }
 
@@ -463,58 +455,60 @@
         .textarea {
             width: 100%;
             border: 1px solid var(--line);
-            border-radius: 14px;
-            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            background: #f4f8ff;
             color: var(--text);
-            padding: 12px 14px;
+            padding: 10px 12px;
             outline: none;
+            transition: box-shadow 0.12s ease, border-color 0.12s ease;
         }
+        .search:focus, .input:focus, .select:focus, .textarea:focus { box-shadow: 0 6px 18px rgba(43,125,233,0.06); border-color: var(--brand); }
 
         .select option {
-            color: #eaf2ff;
-            background: #0f2033;
+            color: var(--text);
+            background: #fff;
         }
 
         .select option:checked,
         .select option:focus {
-            color: #08131f;
-            background: #67aefc;
+            color: #fff;
+            background: var(--brand);
         }
 
         .select option:hover {
-            color: #eaf2ff;
-            background: rgba(103, 174, 252, 0.22);
+            color: var(--text);
+            background: rgba(43,125,233,0.06);
         }
 
         .textarea { min-height: 110px; resize: vertical; }
 
         .btn {
             border: 0;
-            border-radius: 14px;
-            padding: 12px 16px;
+            border-radius: 10px;
+            padding: 10px 14px;
             cursor: pointer;
             font-weight: 700;
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
-
-        .btn-primary { color: #07131d; background: linear-gradient(180deg, var(--brand), #8cc7ff); }
-        .btn-secondary { color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--line); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
+        .btn-primary { color: #fff; background: var(--brand); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
+        .btn-secondary { color: var(--text); background: #fff; border: 1px solid var(--line); }
 
         .task-list { display: grid; gap: 14px; }
 
+        /* Strong, forced task card styles to ensure visibility */
         .task-card {
-            border: 1px solid var(--line);
-            border-radius: 20px;
-            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(11,37,64,0.08) !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
             cursor: pointer;
-            transition: 0.2s ease;
+            transition: 0.12s ease !important;
+            box-shadow: 0 16px 40px rgba(11,37,64,0.10) !important;
+            position: relative;
+            overflow: hidden;
         }
-
-        .task-card:hover,
-        .task-card.active {
-            transform: translateY(-1px);
-            background: rgba(103,174,252,0.12);
-            border-color: rgba(103,174,252,0.22);
-        }
+        .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--brand); }
+        .task-card:hover, .task-card.active { transform: translateY(-10px) !important; box-shadow: 0 22px 56px rgba(11,37,64,0.14) !important; }
 
         .task-top {
             display: flex;
@@ -546,12 +540,14 @@
             white-space: nowrap;
         }
 
-        .badge.ok { background: rgba(94,227,139,0.16); color: #a2f5ba; }
-        .badge.warn { background: rgba(255,204,102,0.16); color: #ffe29b; }
-        .badge.danger { background: rgba(255,107,107,0.16); color: #ffb2b2; }
-        .badge.muted { background: rgba(142,167,196,0.14); color: #d7e2ef; }
+        .badge.ok { background: rgba(40,163,91,0.08); color: #1f7a45; }
+        .badge.warn { background: rgba(240,173,78,0.08); color: #a15e1a; }
+        .badge.danger { background: rgba(217,83,79,0.08); color: #a93b36; }
+        .badge.muted { background: rgba(31,111,224,0.04); color: var(--text); }
 
-        .task-desc { margin: 12px 0 0; color: #d9e6f4; line-height: 1.65; }
+        .task-desc { margin: 12px 0 0; color: var(--muted); line-height: 1.65; }
+
+        .task-title { color: var(--text); }
 
         .task-footer {
             display: flex;
@@ -1236,12 +1232,34 @@
             if (!task) return;
 
             state.drawerOpen = true;
+        // Runtime enforcement: ensure stat/task cards are visibly styled
+        document.addEventListener('DOMContentLoaded', function () {
+            const apply = (els) => {
+                els.forEach(el => {
+                    try {
+                        el.style.setProperty('background', '#ffffff', 'important');
+                        el.style.setProperty('border', '1px solid rgba(11,37,64,0.08)', 'important');
+                        el.style.setProperty('box-shadow', '0 18px 48px rgba(11,37,64,0.12)', 'important');
+                        el.style.setProperty('padding', '18px', 'important');
+                        el.style.setProperty('min-height', '96px', 'important');
+                    } catch(e){}
+                });
+            };
+
+            apply(Array.from(document.querySelectorAll('#statsPanel .stat')));
+            apply(Array.from(document.querySelectorAll('.task-card')));
+        });
             $('#drawerTitle').text(`Editing task #${task.task_id}`);
             $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
             $('#taskDrawer').addClass('open').attr('aria-hidden', 'false');
             $('#editorBackdrop').addClass('visible').attr('aria-hidden', 'false');
             $('body').addClass('drawer-open');
-            $('#taskTitle').trigger('focus');
+            // If non-admin, focus the status select instead
+            if (!isAdminSide()) {
+                $('#statusId').trigger('focus');
+            } else {
+                $('#taskTitle').trigger('focus');
+            }
         }
 
         function closeTaskDrawer() {
@@ -1267,6 +1285,24 @@
             $(`.task-card[data-task-id="${task.task_id}"]`).addClass('active');
             setNotice(`Editing task #${task.task_id}.`, '');
 
+            // Make fields view-only for non-admin users; they may only change task status
+            const admin = isAdminSide();
+            $('#taskTitle').prop('readonly', !admin);
+            $('#taskDescription').prop('readonly', !admin);
+            $('#startDate').prop('disabled', !admin);
+            $('#dueDate').prop('disabled', !admin);
+            $('#priorityId').prop('disabled', !admin);
+            // status select should always be enabled for assigned users
+            $('#statusId').prop('disabled', false);
+            $('#departmentId').prop('disabled', !admin);
+
+            // Update drawer note for non-admins
+            if (!admin) {
+                $('#drawerNote').text('You can only update the task status. Other fields are view-only.');
+            } else {
+                $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
+            }
+
             openTaskDrawer(task.task_id);
         }
 
@@ -1286,16 +1322,20 @@
                 return;
             }
 
-            const payload = {
-                id,
-                title: $('#taskTitle').val().trim(),
-                description: $('#taskDescription').val().trim(),
-                start_date: $('#startDate').val(),
-                due_date: $('#dueDate').val(),
-                priority_id: $('#priorityId').val(),
-                task_status_id: $('#statusId').val(),
-                department_id: $('#departmentId').val()
-            };
+            // Non-admin users are allowed to change only task_status_id. Admins may send full payload.
+            let payload = { id, task_status_id: $('#statusId').val() };
+            if (isAdminSide()) {
+                payload = {
+                    id,
+                    title: $('#taskTitle').val().trim(),
+                    description: $('#taskDescription').val().trim(),
+                    start_date: $('#startDate').val(),
+                    due_date: $('#dueDate').val(),
+                    priority_id: $('#priorityId').val(),
+                    task_status_id: $('#statusId').val(),
+                    department_id: $('#departmentId').val()
+                };
+            }
 
             try {
                 setLoader(true);
@@ -1367,6 +1407,29 @@
                 return;
             }
 
+            $('.nav button[data-view]').on('click', function () {
+                activateView($(this).data('view'));
+            });
+            $('#profileEditButton').on('click', function () {
+                setProfileEditMode(!state.profileEditMode);
+            });
+            $('#profileCancelButton').on('click', function () {
+                renderProfile();
+                setProfileEditMode(false);
+            });
+            $('#logoutButton').on('click', async function () {
+                try {
+                    setLoader(true);
+                    await apiRequest('logout', {});
+                } catch (error) {
+                    // ignore logout errors
+                } finally {
+                    localStorage.removeItem('smart-office-token');
+                    localStorage.removeItem('smart-office-user');
+                    window.location.href = '/login';
+                }
+            });
+
             try {
                 setLoader(true);
                 await loadLookups();
@@ -1393,13 +1456,6 @@
                 $('#resetButton').on('click', resetForm);
                 $('#closeDrawerButton, #editorBackdrop').on('click', function () {
                     resetForm();
-                });
-                $('#profileEditButton').on('click', function () {
-                    setProfileEditMode(!state.profileEditMode);
-                });
-                $('#profileCancelButton').on('click', function () {
-                    renderProfile();
-                    setProfileEditMode(false);
                 });
                 $('#profileImageInput').on('change', function () {
                     const file = this.files && this.files[0];
@@ -1428,21 +1484,6 @@
                 $('#profileEditSection').on('submit', function (event) {
                     event.preventDefault();
                     submitProfile();
-                });
-                $('.nav button[data-view]').on('click', function () {
-                    activateView($(this).data('view'));
-                });
-                $('#logoutButton').on('click', async function () {
-                    try {
-                        setLoader(true);
-                        await apiRequest('logout', {});
-                    } catch (error) {
-                        // ignore logout errors
-                    } finally {
-                        localStorage.removeItem('smart-office-token');
-                        localStorage.removeItem('smart-office-user');
-                        window.location.href = '/login';
-                    }
                 });
             } catch (error) {
                 setNotice(error.message, 'error');

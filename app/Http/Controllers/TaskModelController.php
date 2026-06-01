@@ -257,30 +257,44 @@ class TaskModelController extends Controller
             if (! $task) {
                 return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
             }
+            // If user is not Admin/Manager, only allow changing task_status_id
+            if (! $this->canManageTasks($authUser)) {
+                // Disallow changing other fields from non-manager users
+                $allowed = ['id', 'task_status_id'];
+                $provided = array_keys($request->all());
+                $extra = array_diff($provided, $allowed);
+                if (count($extra) > 0) {
+                    return response()->json(['status' => 403, 'error' => 'You are only allowed to update the task status.'], 403);
+                }
 
-            if ($request->has('title')) {
-                $task->title = $request->input('title');
-            }
-            if ($request->has('description')) {
-                $task->description = $request->input('description');
-            }
-            if ($request->has('start_date')) {
-                $task->start_date = $request->input('start_date');
-            }
-            if ($request->has('due_date')) {
-                $task->due_date = $request->input('due_date');
-            }
-            if ($request->has('priority_id')) {
-                $task->priority_id = $request->input('priority_id');
-            }
-            if ($request->has('task_status_id')) {
-                $task->task_status_id = $request->input('task_status_id');
-            }
-            if ($request->has('department_id')) {
-                $task->department_id = $request->input('department_id');
-            }
-            if ($request->has('status')) {
-                $task->status = $request->input('status');
+                if ($request->has('task_status_id')) {
+                    $task->task_status_id = $request->input('task_status_id');
+                }
+            } else {
+                if ($request->has('title')) {
+                    $task->title = $request->input('title');
+                }
+                if ($request->has('description')) {
+                    $task->description = $request->input('description');
+                }
+                if ($request->has('start_date')) {
+                    $task->start_date = $request->input('start_date');
+                }
+                if ($request->has('due_date')) {
+                    $task->due_date = $request->input('due_date');
+                }
+                if ($request->has('priority_id')) {
+                    $task->priority_id = $request->input('priority_id');
+                }
+                if ($request->has('task_status_id')) {
+                    $task->task_status_id = $request->input('task_status_id');
+                }
+                if ($request->has('department_id')) {
+                    $task->department_id = $request->input('department_id');
+                }
+                if ($request->has('status')) {
+                    $task->status = $request->input('status');
+                }
             }
             $task->save();
 
