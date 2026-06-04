@@ -201,10 +201,14 @@
         }
 
         .message.error {
-            color: #dc2626;
+            font-weight: 1000;
+            font-size: 14px;
+            color: #ff0101;
         }
 
         .message.success {
+            font-weight: 1000;
+            font-size: 14px;
             color: #16a34a;
         }
 
