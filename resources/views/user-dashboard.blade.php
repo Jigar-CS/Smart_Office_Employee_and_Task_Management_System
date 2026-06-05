@@ -492,7 +492,34 @@
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
         .btn-primary { color: #fff; background: var(--brand); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
-        .btn-secondary { color: var(--text); background: #fff; border: 1px solid var(--line); }
+.btn-secondary { color: var(--text); background: #fff; border: 1px solid var(--line); }
+
+        .icon-mini {
+            width: 40px;
+            height: 36px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        .icon-mini svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        .icon-mini svg * {
+            stroke: #0b2540;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
 
         .task-list { display: grid; gap: 14px; }
 
@@ -1132,12 +1159,18 @@
             formData.append('name', $('#profileNameInput').val().trim());
             formData.append('email', $('#profileEmailInput').val().trim());
             formData.append('mobile', $('#profileMobileInput').val().trim());
-            formData.append('image', $('#profileImageUrlInput').val().trim());
 
             const imageFile = $('#profileImageInput')[0]?.files?.[0];
+            const imageUrl = ($('#profileImageUrlInput').val() || '').trim();
+
+            // Only send image URL if it's non-empty; empty string can trigger server-side validation issues.
             if (imageFile) {
                 formData.append('image_file', imageFile);
+                // If user selected a file, don't also send image URL.
+            } else if (imageUrl) {
+                formData.append('image', imageUrl);
             }
+
 
             try {
                 setLoader(true);
@@ -1208,7 +1241,12 @@
                             </div>
                             <div style="display:grid; gap:8px; justify-items:end;">
                                 <span class="badge muted">#${escapeHtml(task.task_id)}</span>
-                                <button type="button" class="btn btn-secondary task-edit-button" data-edit-task="${escapeHtml(task.task_id)}">Edit</button>
+<button type="button" class="btn btn-secondary icon-mini task-edit-button" aria-label="Edit" data-edit-task="${escapeHtml(task.task_id)}">
+                                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                                        <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z" />
+                                        <path d="M14.06 4.19l3.75 3.75" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                         <p class="task-desc">${escapeHtml(task.description)}</p>

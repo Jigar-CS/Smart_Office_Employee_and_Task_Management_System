@@ -374,7 +374,7 @@
             flex-wrap: wrap;
         }
 
-        .mini {
+.mini {
             padding: 8px 10px;
             border-radius: 8px;
             border: 1px solid var(--line);
@@ -383,6 +383,30 @@
             cursor: pointer;
             font-size: 12px;
             font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .icon-mini {
+            width: 36px;
+            height: 32px;
+            padding: 0;
+        }
+
+        .icon-mini svg {
+            width: 16px;
+            height: 16px;
+            display: block;
+        }
+
+        .icon-mini svg * {
+            stroke: #0b2540;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .badge {
@@ -674,7 +698,7 @@
             overview: { title: 'Dashboard', subtitle: 'System overview and quick entry points.' },
             departments: {
                 title: 'Departments', subtitle: 'Manage department master records.', endpoint: 'department', list: 'getalldepartment', create: 'adddepartment', update: 'updatedepartment', destroy: 'deletedepartment', pageSize: 10,
-                searchable: false,
+
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
                     { name: 'description', label: 'Description', type: 'textarea' }
@@ -959,34 +983,24 @@
 
         function renderOverview() {
             const visibleKeys = getVisibleModuleOrder();
+
             const cards = [
-                ['Departments', state.counts.departments ?? 0, 'Department master records'],
-                ['Roles', state.counts.roles ?? 0, 'Access roles and permissions'],
-                ['Users', state.counts.users ?? 0, 'Active team members'],
-                ['Tasks', state.counts.tasks ?? 0, 'Task records in the system'],
-                ['Statuses', state.counts.taskStatuses ?? 0, 'Workflow status options'],
-                ['Priorities', state.counts.priorities ?? 0, 'Priority levels'],
-                ['Documents', state.counts.documents ?? 0, 'Document metadata entries']
-            ].filter(([label]) => {
-                const labelMap = {
-                    Departments: 'departments',
-                    Roles: 'roles',
-                    Users: 'users',
-                    Tasks: 'tasks',
-                    Statuses: 'taskStatuses',
-                    Priorities: 'priorities',
-                    Documents: 'documents'
-                };
-                return visibleKeys.includes(labelMap[label]);
-            });
+                { key: 'departments', label: 'Departments', value: state.counts.departments ?? 0, hint: 'Department master records' },
+                { key: 'roles', label: 'Roles', value: state.counts.roles ?? 0, hint: 'Access roles and permissions' },
+                { key: 'users', label: 'Users', value: state.counts.users ?? 0, hint: 'Active team members' },
+                { key: 'tasks', label: 'Tasks', value: state.counts.tasks ?? 0, hint: 'Task records in the system' },
+                { key: 'taskStatuses', label: 'Statuses', value: state.counts.taskStatuses ?? 0, hint: 'Workflow status options' },
+                { key: 'priorities', label: 'Priorities', value: state.counts.priorities ?? 0, hint: 'Priority levels' },
+                { key: 'documents', label: 'Documents', value: state.counts.documents ?? 0, hint: 'Document metadata entries' }
+            ].filter(card => visibleKeys.includes(card.key));
 
             const html = `
                 <section class="grid stats">
-                    ${cards.map(([label, value, hint]) => `
+                    ${cards.map((card) => `
                         <div class="stat">
-                            <div class="label">${escapeHtml(label)}</div>
-                            <div class="value">${escapeHtml(value)}</div>
-                            <div class="hint">${escapeHtml(hint)}</div>
+                            <div class="label">${escapeHtml(card.label)}</div>
+                            <div class="value">${escapeHtml(card.value)}</div>
+                            <div class="hint">${escapeHtml(card.hint)}</div>
                         </div>
                     `).join('')}
                 </section>
@@ -1061,9 +1075,10 @@
         async function renderModule(moduleName) {
             const cfg = modules[moduleName];
             await ensureModuleLookups(moduleName);
-            const canSearch = !!cfg.searchable;
+            const canSearch = true;
             const canCreate = !!cfg.create;
-            const searchHtml = canSearch ? `<input id="moduleSearch" class="search" type="search" placeholder="Search ${escapeHtml(cfg.title.toLowerCase())}..." value="${escapeHtml(state.search[moduleName] || '')}">` : '';
+            const searchHtml = `<input id="moduleSearch" class="search" type="search" placeholder="Search ${escapeHtml(cfg.title.toLowerCase())}..." value="${escapeHtml(state.search[moduleName] || '')}">`;
+
             const formFields = cfg.fields.map(field => renderField(moduleName, field)).join('');
             const drawerOpen = state.drawerModule === moduleName;
             const drawerText = getDrawerText(moduleName, state.drawerMode || 'edit');
@@ -1150,13 +1165,12 @@
                 loadModule(moduleName);
             });
 
-            if (canSearch) {
-                $('#moduleSearch').on('input', function () {
-                    state.search[moduleName] = $(this).val().trim();
-                    clearTimeout(state.searchTimer);
-                    state.searchTimer = setTimeout(() => loadModule(moduleName, 1), 250);
-                });
-            }
+            $('#moduleSearch').off('input.moduleSearch').on('input.moduleSearch', function () {
+                state.search[moduleName] = $(this).val().trim();
+                clearTimeout(state.searchTimer);
+                state.searchTimer = setTimeout(() => loadModule(moduleName, 1), 250);
+            });
+
 
             if (moduleName === 'tasks') {
                 $('#field_tasks_department_id').off('change.taskAssignees').on('change.taskAssignees', function () {
@@ -1356,15 +1370,27 @@
 
         async function loadOverviewCounts() {
             const totals = {};
+            const visible = new Set(getVisibleModuleOrder());
+
             const requests = Object.entries(modules)
-                .filter(([name]) => name !== 'overview' && getVisibleModuleOrder().includes(name))
+                .filter(([name]) => name !== 'overview' && visible.has(name))
                 .map(async ([name, cfg]) => {
                     const response = await apiRequest(cfg.list, { limit: 1, offset: 0, search: state.search[name] || '' });
                     totals[name] = response.count ?? (response.data || []).length;
                 });
 
             await Promise.all(requests);
+
             state.counts = { ...state.counts, ...totals };
+
+            // Update overview cards after counts are fetched.
+            // Use the *current* visibility rules (admin vs non-admin) to avoid stale/incorrect rendering.
+            if ($('#moduleRoot').length) {
+                // Only re-render when currently on dashboard.
+                if (state.activeModule === 'overview') {
+                    renderOverview();
+                }
+            }
         }
 
         async function loadModule(moduleName, page = 1) {
@@ -1378,9 +1404,10 @@
             try {
                 const offset = (page - 1) * cfg.pageSize;
                 const payload = { limit: cfg.pageSize, offset };
-                if (cfg.searchable && state.search[moduleName]) {
+                if (state.search[moduleName]) {
                     payload.search = state.search[moduleName];
                 }
+
 
                 const response = await apiRequest(cfg.list, payload);
                 const rows = response.data || [];
@@ -1414,8 +1441,21 @@
                         ${cells}
                         <td>
                             <div class="row-actions">
-                                <button type="button" class="mini" data-action="edit" data-id="${escapeHtml(getRowId(row, moduleName))}">Edit</button>
-                                <button type="button" class="mini" data-action="delete" data-id="${escapeHtml(getRowId(row, moduleName))}">Delete</button>
+<button type="button" class="mini icon-mini" aria-label="Edit" data-action="edit" data-id="${escapeHtml(getRowId(row, moduleName))}">
+                                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                                        <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z" />
+                                        <path d="M14.06 4.19l3.75 3.75" />
+                                    </svg>
+                                </button>
+                                <button type="button" class="mini icon-mini" aria-label="Delete" data-action="delete" data-id="${escapeHtml(getRowId(row, moduleName))}">
+                                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                                        <path d="M3 6h18" />
+                                        <path d="M8 6V4h8v2" />
+                                        <path d="M19 6l-1 16H6L5 6" />
+                                        <path d="M10 11v6" />
+                                        <path d="M14 11v6" />
+                                    </svg>
+                                </button>
                             </div>
                         </td>
                     </tr>

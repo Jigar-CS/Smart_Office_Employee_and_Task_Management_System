@@ -290,8 +290,17 @@
 
                 <div class="field">
                     <label for="password">Password</label>
-                    <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+                    <div style="position: relative;">
+                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required style="padding-right: 46px;">
+                        <button type="button" id="togglePassword" aria-label="Show password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 1px solid rgba(46,111,187,0.14); border-radius: 10px; background: rgba(255,255,255,0.96); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                                <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="#0b2540" stroke-width="2" stroke-linejoin="round"/>
+                                <circle cx="12" cy="12" r="3" fill="none" stroke="#0b2540" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+
 
                 <div class="actions">
                     <button id="submitButton" type="submit">Sign In</button>
@@ -310,6 +319,13 @@
             $('#loginForm').on('submit', function (event) {
                 event.preventDefault();
                 userlogin();
+            });
+
+            $('#togglePassword').on('click', function () {
+                const $pwd = $('#password');
+                const isHidden = $pwd.attr('type') === 'password';
+                $pwd.attr('type', isHidden ? 'text' : 'password');
+                $(this).attr('aria-label', isHidden ? 'Hide password' : 'Show password');
             });
         });
 
@@ -397,4 +413,6 @@
     </script>
 </body>
 </html>
+
+
     
