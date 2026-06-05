@@ -668,7 +668,7 @@
             <header class="hero">
                 <div>
                     <h1>My Tasks</h1>
-                    <p>Review assigned tasks and update the fields you are allowed to change.</p>
+                 
                 </div>
                 <div id="sessionPill" class="pill">Session ready</div>
             </header>
@@ -788,11 +788,19 @@
                             </div>
                             <div class="field full">
                                 <label for="profileImageInput">Profile Image</label>
-                                <input id="profileImageInput" class="input" name="image_file" type="file" accept="image/*">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <input id="profileImageInput" class="input" name="image_file" type="file" accept="image/*" style="flex:1;">
+                                    <button id="uploadImageButton" type="button" class="btn btn-primary">Upload</button>
+                                </div>
+                                <small class="field-help">Choose a file and click Upload to store it on the server.</small>
                             </div>
                             <div class="field full">
                                 <label for="profileImageUrlInput">Image URL</label>
-                                <input id="profileImageUrlInput" class="input" name="image" type="text" placeholder="https://... or stored image path">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <input id="profileImageUrlInput" class="input" name="image" type="text" placeholder="https://... or stored image path" style="flex:1;">
+                                    <button id="pastePreviewButton" type="button" class="btn btn-secondary">Preview</button>
+                                </div>
+                                <small class="field-help">Or paste an image URL and click Preview, or leave blank to keep current image.</small>
                             </div>
                             <div class="field full">
                                 <div class="profile-image-preview">
@@ -818,7 +826,7 @@
         <div class="editor-drawer-header">
             <div>
                 <h2 id="drawerTitle" class="editor-drawer-title">Editing task</h2>
-                <p id="drawerNote" class="editor-drawer-note">Update the selected record in the side panel, then save the changes.</p>
+              
             </div>
             <button id="closeDrawerButton" class="btn btn-secondary" type="button">Close</button>
         </div>
@@ -1208,6 +1216,7 @@
                             <span>Start: ${escapeHtml(formatDate(task.start_date))}</span>
                             <span>Due: ${escapeHtml(formatDate(task.due_date))}</span>
                             <span>${escapeHtml(lookupLabel(state.departments, 'department_id', 'name', task.department_id))}</span>
+                            <span>Assigned by: ${escapeHtml(task.assigned_by_name || task.assigned_by || '-')}</span>
                         </div>
                     </article>
                 `;
@@ -1250,7 +1259,7 @@
             apply(Array.from(document.querySelectorAll('.task-card')));
         });
             $('#drawerTitle').text(`Editing task #${task.task_id}`);
-            $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
+           // $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
             $('#taskDrawer').addClass('open').attr('aria-hidden', 'false');
             $('#editorBackdrop').addClass('visible').attr('aria-hidden', 'false');
             $('body').addClass('drawer-open');
@@ -1297,11 +1306,11 @@
             $('#departmentId').prop('disabled', !admin);
 
             // Update drawer note for non-admins
-            if (!admin) {
-                $('#drawerNote').text('You can only update the task status. Other fields are view-only.');
-            } else {
-                $('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
-            }
+           // if (!admin) {
+             //   $('#drawerNote').text('You can only update the task status. Other fields are view-only.');
+            //} else {
+                //$('#drawerNote').text('Update the selected task in the side panel, then save the changes.');
+           // }
 
             openTaskDrawer(task.task_id);
         }

@@ -687,7 +687,7 @@
             },
             
             roles: {
-                title: 'Roles', subtitle: 'Manage user role definitions.', endpoint: 'role', list: 'getallrole', create: 'addrole', update: 'updaterole', destroy: 'deleterole', pageSize: 10,
+                title: 'Roles', subtitle: 'Manage user role definitions.', endpoint: 'role', list: 'getallrole', create: 'addrole', update: 'updaterole', destroy: 'deleterole', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
@@ -713,7 +713,7 @@
                 ]
             },
             taskStatuses: {
-                title: 'Task Statuses', subtitle: 'Maintain workflow status labels.', endpoint: 'taskstatus', list: 'getalltaskstatus', create: 'addtaskstatus', update: 'updatetaskstatus', destroy: 'deletetaskstatus', pageSize: 10,
+                title: 'Task Statuses', subtitle: 'Maintain workflow status labels.', endpoint: 'taskstatus', list: 'getalltaskstatus', create: 'addtaskstatus', update: 'updatetaskstatus', destroy: 'deletetaskstatus', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
@@ -726,7 +726,7 @@
                 ]
             },
             users: {
-                title: 'Users', subtitle: 'Create and maintain team accounts.', endpoint: 'user', list: 'getalluser', create: 'createuser', update: 'updateuser', destroy: 'deleteuser', pageSize: 10,
+                title: 'Users', subtitle: 'Create and maintain team accounts.', endpoint: 'user', list: 'getalluser', create: 'adduser', update: 'updateuser', destroy: 'deleteuser', pageSize: 5,
                 searchable: true,
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
@@ -747,7 +747,7 @@
                 ]
             },
             tasks: {
-                title: 'Tasks', subtitle: 'Create tasks and assign them to users.', endpoint: 'task', list: 'getalltask', create: 'createtask', update: 'updatetask', destroy: 'deletetask', pageSize: 10,
+                title: 'Tasks', subtitle: 'Create tasks and assign them to users.', endpoint: 'task', list: 'getalltask', create: 'createtask', update: 'updatetask', destroy: 'deletetask', pageSize: 5,
                 searchable: true,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
@@ -770,7 +770,7 @@
                 ]
             },
             taskStatusLogs: {
-                title: 'Task Status Logs', subtitle: 'Review activity history and edit records from the side panel.', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 10,
+                title: 'Task Status Logs', subtitle: 'Review activity history and edit records from the side panel.', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'task_id', label: 'Task', type: 'select', lookup: 'tasks', required: true, lockOnEdit: true },
@@ -791,7 +791,7 @@
                 ]
             },
             documents: {
-                title: 'Documents', subtitle: 'Maintain task-related document metadata.', endpoint: 'document', list: 'getalldocument', create: 'adddocument', update: 'updatedocument', destroy: 'deletedocument', pageSize: 10,
+                title: 'Documents', subtitle: 'Maintain task-related document metadata.', endpoint: 'document', list: 'getalldocument', create: 'adddocument', update: 'updatedocument', destroy: 'deletedocument', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'task_id', label: 'Task', type: 'select', lookup: 'tasks', required: true },
@@ -1005,13 +1005,13 @@
             if (mode === 'create') {
                 return {
                     title: `Create ${title}`,
-                    note: 'Fill out the fields in the side panel, then save the new record.'
+                    //note: 'Fill out the fields in the side panel, then save the new record.'
                 };
             }
 
             return {
                 title: `Editing ${title}`,
-                note: 'Update the selected record in the side panel, then save the changes.'
+               // note: 'Update the selected record in the side panel, then save the changes.'
             };
         }
 
@@ -1173,6 +1173,26 @@
                 });
             }
 
+            // Preview/upload helper for image file inputs in user form
+            $(document).off('click.moduleImagePreview').on('click.moduleImagePreview', 'button[id$="_preview"]', function () {
+                const btn = $(this);
+                const fileInput = btn.closest('.field').find('input[type="file"]')[0];
+                if (!fileInput || !fileInput.files || !fileInput.files.length) {
+                    setNotice('Please choose an image file first.', 'error');
+                    return;
+                }
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const win = window.open('', '_blank');
+                    const img = win.document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100%';
+                    win.document.body.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+
             loadModule(moduleName);
         }
 
@@ -1260,6 +1280,21 @@
             const type = field.type || 'text';
             const inputValue = value || '';
             const placeholder = escapeHtml(field.placeholder || `Enter ${field.label.toLowerCase()}`);
+            // special-case image field for admin UI: provide file picker plus URL fallback
+            if (moduleName === 'users' && field.name === 'image') {
+                return `
+                    <div class="field ${field.full ? 'full' : ''}">
+                        <label for="${id}">${label}</label>
+                        <input id="${id}" name="${field.name}" class="control" type="${type}" value="${escapeHtml(inputValue)}" placeholder="${placeholder}" ${required ? 'required' : ''}>
+                        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                            <input id="${id}_file" name="image_file" type="file" accept="image/*" style="flex:1;" />
+                            <button type="button" id="${id}_preview" class="btn btn-secondary">Preview</button>
+                        </div>
+                        <small class="field-help">Upload an image file or paste an image URL.</small>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="field ${field.full ? 'full' : ''}">
                     <label for="${id}">${label}</label>
@@ -1595,9 +1630,36 @@
             try {
                 setLoader(true);
                 setNotice('Saving record...', '');
-                const response = await apiRequest(endpoint, payload);
-                if (response.status !== 200) {
-                    throw new Error(extractError(response));
+                let response;
+                // If the form includes a file input, send as multipart FormData
+                const fileInput = form.querySelector('input[type="file"][name="image_file"]');
+                if (fileInput && fileInput.files && fileInput.files.length) {
+                    const fd = new FormData();
+                    // append all original form entries from the FormData object
+                    for (const pair of formData.entries()) {
+                        fd.append(pair[0], pair[1]);
+                    }
+
+                    response = await (async () => {
+                        try {
+                            const jq = await $.ajax({
+                                type: 'POST',
+                                url: `${API_BASE}/${endpoint}`,
+                                data: fd,
+                                processData: false,
+                                contentType: false,
+                                headers: apiHeaders()
+                            });
+                            return jq;
+                        } catch (xhr) {
+                            throw new Error(extractError(xhr.responseJSON || {}));
+                        }
+                    })();
+                } else {
+                    response = await apiRequest(endpoint, payload);
+                    if (response.status !== 200) {
+                        throw new Error(extractError(response));
+                    }
                 }
 
                 setNotice('Record saved successfully.', 'success');

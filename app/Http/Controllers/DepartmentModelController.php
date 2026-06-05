@@ -46,7 +46,7 @@ class DepartmentModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $departmentsQuery = DepartmentModel::where('status', 1)->orderBy('department_id', 'desc');
+        $departmentsQuery = DepartmentModel::where('status', 1)->orderBy('department_id', 'asc');
         $count = $departmentsQuery->count();
         $departments = $departmentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

@@ -51,7 +51,7 @@ class RoleModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $rolesQuery = RoleModel::where('status', 1)->orderBy('role_id', 'desc');
+        $rolesQuery = RoleModel::where('status', 1)->orderBy('role_id', 'asc');
         $count = $rolesQuery->count();
         $roles = $rolesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

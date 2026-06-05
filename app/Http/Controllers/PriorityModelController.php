@@ -46,7 +46,7 @@ class PriorityModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $prioritiesQuery = PriorityModel::where('status', 1)->orderBy('priority_id', 'desc');
+        $prioritiesQuery = PriorityModel::where('status', 1)->orderBy('priority_id', 'asc');
         $count = $prioritiesQuery->count();
         $priorities = $prioritiesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

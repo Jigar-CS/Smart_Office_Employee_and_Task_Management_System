@@ -49,7 +49,7 @@ class TaskAssignmentModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $taskAssignmentsQuery = TaskAssignmentModel::where('status', 1)->orderBy('assignment_id', 'desc');
+        $taskAssignmentsQuery = TaskAssignmentModel::where('status', 1)->orderBy('assignment_id', 'asc');
         $count = $taskAssignmentsQuery->count();
         $taskAssignments = $taskAssignmentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

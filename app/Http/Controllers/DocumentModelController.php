@@ -45,7 +45,7 @@ class DocumentModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $documentsQuery = DocumentModel::where('status', 1)->orderBy('document_id', 'desc');
+        $documentsQuery = DocumentModel::where('status', 1)->orderBy('document_id', 'asc');
         $count = $documentsQuery->count();
         $documents = $documentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

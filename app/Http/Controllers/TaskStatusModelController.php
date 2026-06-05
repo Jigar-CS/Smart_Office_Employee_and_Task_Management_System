@@ -46,7 +46,7 @@ class TaskStatusModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $taskStatusesQuery = TaskStatusModel::where('status', 1)->orderBy('task_status_id', 'desc');
+        $taskStatusesQuery = TaskStatusModel::where('status', 1)->orderBy('task_status_id', 'asc');
         $count = $taskStatusesQuery->count();
         $taskStatuses = $taskStatusesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

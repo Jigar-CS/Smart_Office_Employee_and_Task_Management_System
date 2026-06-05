@@ -52,8 +52,9 @@ class UserController extends Controller
     public function getalluser(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'limit' => 'required|integer|min:1',
-            'offset' => 'required|integer|min:0',
+            'limit' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'offset' => 'nullable|integer|min:0',
             'search' => 'nullable|string|max:255',
             'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
         ]);
@@ -67,19 +68,47 @@ class UserController extends Controller
             ->leftJoin('tbl_departments as d', 'tbl_users.department_id', '=', 'd.department_id')
             ->where('tbl_users.status', 1)
             ->select('tbl_users.*','r.name as role_name', 'd.name as department_name')
-            ->orderBy('tbl_users.user_id', 'desc');
+            ->orderBy('tbl_users.user_id', 'asc');
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $usersQuery->where('tbl_users.name', 'like', '%' . $search . '%');
+            $usersQuery->where(function($q) use ($search) {
+                $q->where('tbl_users.name', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_users.email', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_users.mobile', 'like', '%' . $search . '%')
+                  ->orWhere('r.name', 'like', '%' . $search . '%')
+                  ->orWhere('d.name', 'like', '%' . $search . '%');
+            });
         }
 
         if ($request->filled('department_id')) {
             $usersQuery->where('tbl_users.department_id', $request->input('department_id'));
         }
                         
+        // Pagination: prefer page-based, fallback to offset/limit. Default 5 per page.
+        $limit = $request->input('limit', 5);
+        $page = $request->input('page');
+        $offset = $request->input('offset');
+
+        if ($page) {
+            $offset = ($page - 1) * $limit;
+        }
+
+        $offset = $offset ?? 0;
+
         $count = $usersQuery->count();
-        $users = $usersQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+        $users = $usersQuery->skip($offset)->take($limit)->get();
+
+        // Provide pagination metadata
+        $meta = [
+            'total' => $count,
+            'per_page' => (int) $limit,
+            'current_offset' => (int) $offset,
+            'current_page' => $page ? (int) $page : (int) floor($offset / $limit) + 1,
+            'has_next' => ($offset + $limit) < $count,
+        ];
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $users, 'meta' => $meta], 200);
 
         return response()->json(['status' => 200, 'count' => $count, 'data' => $users], 200);
     }
@@ -93,11 +122,13 @@ class UserController extends Controller
         $valid = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:tbl_users,email',
-            'password' => ['required', 'string', Password::min(5)->mixedCase()->numbers()->symbols()],
+            // relax complexity for admin-created accounts (min length enforced)
+            'password' => ['required', 'string', Password::min(5)],
             'role_id' => 'required|integer|exists:tbl_roles,role_id',
             'department_id' => 'required|integer|exists:tbl_departments,department_id',
             'mobile' => 'nullable|string|max:255',
             'image' => 'nullable|string|max:255',
+            'image_file' => 'nullable|image|max:2048',
         ], [
             'name.required' => 'Name is required.',
             'name.string' => 'Name must be a string.',
@@ -109,9 +140,6 @@ class UserController extends Controller
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least :min characters.',
             'password.string' => 'Password must be a string.',
-            'password.mixedCase' => 'Password must contain both uppercase and lowercase letters.',
-            'password.numbers' => 'Password must contain at least one number.',
-            'password.symbols' => 'Password must contain at least one symbol.',
             'role_id.required' => 'Role is required.',
             'role_id.integer' => 'Role id must be an integer.',
             'role_id.exists' => 'Selected role is invalid.',
@@ -134,7 +162,11 @@ class UserController extends Controller
             $user->role_id = $request->input('role_id');
             $user->department_id = $request->input('department_id');
             $user->mobile = $request->input('mobile');
-            $user->image = $request->input('image');
+            if ($request->hasFile('image_file')) {
+                $user->image = $request->file('image_file')->store('profile-images', 'public');
+            } else {
+                $user->image = $request->input('image');
+            }
             $user->status = 1;
             $result = $user->save();
 
@@ -154,7 +186,8 @@ class UserController extends Controller
             'role_id' => 'nullable|integer|exists:tbl_roles,role_id',
             'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
             'mobile' => 'nullable|string|max:255',
-            'image' => 'nullable|string|max:255',
+              'image' => 'nullable|string|max:255',
+              'image_file' => 'nullable|image|max:2048',
         ], [
             'id.required' => 'User id is required.',
             'id.integer' => 'User id must be an integer.',
@@ -203,7 +236,9 @@ class UserController extends Controller
             if ($request->has('mobile')) {
                 $user->mobile = $request->input('mobile');
             }
-            if ($request->has('image')) {
+            if ($request->hasFile('image_file')) {
+                $user->image = $request->file('image_file')->store('profile-images', 'public');
+            } elseif ($request->has('image')) {
                 $user->image = $request->input('image');
             }
             if ($request->has('status')) {

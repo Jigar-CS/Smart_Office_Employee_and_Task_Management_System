@@ -37,7 +37,7 @@ class TaskStatusLogModelController extends Controller
                 'to_status.title as to_status_name'
             )
             ->where('tbl_task_status_log.status', 1)
-            ->orderBy('tbl_task_status_log.status_log_id', 'desc');
+            ->orderBy('tbl_task_status_log.status_log_id', 'asc');
 
         if ($request->filled('user_id')) {
             $logsQuery->whereExists(function ($query) use ($request) {

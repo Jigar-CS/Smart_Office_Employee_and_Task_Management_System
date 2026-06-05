@@ -6,6 +6,7 @@ use App\Models\RoleModel;
 use App\Models\TaskAssignmentModel;
 use App\Models\TaskModel;
 use App\Models\TaskStatusLogModel;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -72,8 +73,9 @@ class TaskModelController extends Controller
     public function getalltask(Request $request)
     {
         $valid = Validator::make($request->all(), [
-            'limit' => 'required|integer|min:1',
-            'offset' => 'required|integer|min:0',
+            'limit' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'offset' => 'nullable|integer|min:0',
             'search' => 'nullable|string|max:255',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
@@ -100,11 +102,26 @@ class TaskModelController extends Controller
             return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
         }
 
-        $tasksQuery = TaskModel::where('status', 1)->orderBy('task_id', 'desc');
+        // Include lookup joins so search can match lookup labels (names/titles)
+        $tasksQuery = TaskModel::query()
+            ->leftJoin('tbl_priorities as p', 'tbl_tasks.priority_id', '=', 'p.priority_id')
+            ->leftJoin('tbl_task_status as ts', 'tbl_tasks.task_status_id', '=', 'ts.task_status_id')
+            ->leftJoin('tbl_departments as d', 'tbl_tasks.department_id', '=', 'd.department_id')
+            ->where('tbl_tasks.status', 1)
+            ->select('tbl_tasks.*', 'p.title as priority_title', 'ts.title as task_status_title', 'd.name as department_name')
+            ->orderBy('tbl_tasks.task_id', 'asc');
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $tasksQuery->where('title', 'like', '%' . $search . '%');
+            $tasksQuery->where(function($q) use ($search) {
+                $q->where('tbl_tasks.title', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_tasks.description', 'like', '%' . $search . '%')
+                  ->orWhere('p.title', 'like', '%' . $search . '%')
+                  ->orWhere('ts.title', 'like', '%' . $search . '%')
+                  ->orWhere('d.name', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_tasks.start_date', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_tasks.due_date', 'like', '%' . $search . '%');
+            });
         }
 
         if ($request->filled('from_date') && $request->filled('to_date')) {
@@ -124,10 +141,55 @@ class TaskModelController extends Controller
             $tasksQuery = $tasksQuery->whereIn('task_id', $assignedTaskIds);
         }
 
-        $count = $tasksQuery->count();
-        $tasks = $tasksQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
+        // Pagination: prefer page param, fallback to offset/limit. Default 5 per page.
+        $limit = $request->input('limit', 5);
+        $page = $request->input('page');
+        $offset = $request->input('offset');
 
-        return response()->json(['status' => 200, 'count' => $count, 'data' => $tasks], 200);
+        if ($page) {
+            $offset = ($page - 1) * $limit;
+        }
+        $offset = $offset ?? 0;
+
+        $count = $tasksQuery->count();
+        $tasks = $tasksQuery->skip($offset)->take($limit)->get();
+
+        // If not an admin viewing all tasks, include who assigned the task to this user.
+        if (! $this->canViewAllTasks($authUser)) {
+            $taskIds = $tasks->pluck('task_id')->all();
+            if (!empty($taskIds)) {
+                $assignments = TaskAssignmentModel::whereIn('task_id', $taskIds)
+                    ->where('user_id', $authUser->user_id)
+                    ->where('status', 1)
+                    ->get()
+                    ->keyBy('task_id');
+
+                $assignerIds = array_values(array_filter(array_map(function($a){ return $a->assigned_by ?? null; }, $assignments->all())));
+                $assigners = [];
+                if (!empty($assignerIds)) {
+                    $users = User::whereIn('user_id', $assignerIds)->get()->keyBy('user_id');
+                    foreach ($users as $uid => $u) {
+                        $assigners[$uid] = $u->name;
+                    }
+                }
+
+                foreach ($tasks as $t) {
+                    $assigned = $assignments[$t->task_id] ?? null;
+                    $t->assigned_by = $assigned->assigned_by ?? null;
+                    $t->assigned_by_name = $assigners[$t->assigned_by] ?? null;
+                }
+            }
+        }
+
+        $meta = [
+            'total' => $count,
+            'per_page' => (int) $limit,
+            'current_page' => $page ? (int) $page : (int) floor($offset / $limit) + 1,
+            'current_offset' => (int) $offset,
+            'has_next' => ($offset + $limit) < $count,
+        ];
+
+        return response()->json(['status' => 200, 'count' => $count, 'data' => $tasks, 'meta' => $meta], 200);
     }
 
     public function addtask(Request $request)
