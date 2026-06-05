@@ -30,10 +30,12 @@ class DepartmentModelController extends Controller
 
     public function getalldepartment(Request $request)
     {
-        $valid = Validator::make($request->all(), [
+$valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'search' => 'nullable|string|max:255',
         ], [
+
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
             'limit.min' => 'Limit must be at least :min.',
@@ -46,7 +48,17 @@ class DepartmentModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $departmentsQuery = DepartmentModel::where('status', 1)->orderBy('department_id', 'asc');
+        $departmentsQuery = DepartmentModel::where('status', 1)
+            ->orderBy('department_id', 'asc');
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $departmentsQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
         $count = $departmentsQuery->count();
         $departments = $departmentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

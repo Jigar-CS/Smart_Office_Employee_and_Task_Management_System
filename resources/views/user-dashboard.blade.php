@@ -714,11 +714,11 @@
                             <h2 class="panel-title">Assigned Tasks</h2>
                             <p class="panel-desc">Search and filter the tasks assigned to your account.</p>
                         </div>
-                        <div class="toolbar">
-                            <input id="searchInput" class="search" type="search" placeholder="Search tasks by title...">
-                            <input id="fromDate" class="input" type="date">
-                            <input id="toDate" class="input" type="date">
-                            <button id="refreshButton" type="button" class="btn btn-secondary">Refresh</button>
+                        <div class="toolbar" style="flex-wrap:nowrap;">
+                            <input id="searchInput" class="search" type="search" placeholder="Search tasks by title..." style="flex:1; min-width:180px;">
+                            <input id="fromDate" class="input" type="date" style="width:150px;">
+                            <input id="toDate" class="input" type="date" style="width:150px;">
+                            <button id="refreshButton" type="button" class="btn btn-secondary" aria-label="Refresh" title="Refresh" style="white-space:nowrap;"><span style="font-size:16px; line-height:1;">⟳</span></button>
                         </div>
                     </div>
 

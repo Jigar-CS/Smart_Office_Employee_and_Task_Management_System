@@ -32,7 +32,10 @@ class DocumentModelController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'search' => 'nullable|string|max:255',
         ], [
+
+
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
             'limit.min' => 'Limit must be at least :min.',
@@ -45,7 +48,19 @@ class DocumentModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $documentsQuery = DocumentModel::where('status', 1)->orderBy('document_id', 'asc');
+        $documentsQuery = DocumentModel::where('status', 1)
+            ->orderBy('document_id', 'asc');
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $documentsQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('file_name', 'like', '%' . $search . '%')
+                  ->orWhere('file_path', 'like', '%' . $search . '%')
+                  ->orWhere('mime_type', 'like', '%' . $search . '%');
+            });
+        }
+
         $count = $documentsQuery->count();
         $documents = $documentsQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

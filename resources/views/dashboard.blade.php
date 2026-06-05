@@ -273,7 +273,7 @@
         .toolbar {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             align-items: center;
         }
 
@@ -338,7 +338,7 @@
             transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
-        .btn-primary { color: #fff; background: var(--brand); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
+.btn-primary { color: var(--text); background: #fff; border: 1px solid var(--line); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
         .btn-primary:active { transform: translateY(0); }
         .btn-secondary { color: var(--text); background: #fff; border: 1px solid var(--line); }
         .btn-danger { color: #fff; background: var(--danger); }
@@ -631,7 +631,7 @@
             <header class="topbar">
                 <div class="hero">
                     <h1 id="pageTitle">Dashboard</h1>
-                    <p id="pageSubtitle">Manage users, tasks, masters, assignments, logs, and documents from one place.</p>
+                   
                 </div>
                 <div id="sessionPill" class="pill">Session ready</div>
             </header>
@@ -697,7 +697,7 @@
         const modules = {
             overview: { title: 'Dashboard', subtitle: 'System overview and quick entry points.' },
             departments: {
-                title: 'Departments', subtitle: 'Manage department master records.', endpoint: 'department', list: 'getalldepartment', create: 'adddepartment', update: 'updatedepartment', destroy: 'deletedepartment', pageSize: 10,
+                title: 'Departments', endpoint: 'department', list: 'getalldepartment', create: 'adddepartment', update: 'updatedepartment', destroy: 'deletedepartment', pageSize: 10,
 
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
@@ -711,7 +711,7 @@
             },
             
             roles: {
-                title: 'Roles', subtitle: 'Manage user role definitions.', endpoint: 'role', list: 'getallrole', create: 'addrole', update: 'updaterole', destroy: 'deleterole', pageSize: 5,
+                title: 'Roles', endpoint: 'role', list: 'getallrole', create: 'addrole', update: 'updaterole', destroy: 'deleterole', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
@@ -724,7 +724,7 @@
                 ]
             },
             priorities: {
-                title: 'Priorities', subtitle: 'Define task priority levels.', endpoint: 'priority', list: 'getallpriority', create: 'addpriority', update: 'updatepriority', destroy: 'deletepriority', pageSize: 10,
+                title: 'Priorities',endpoint: 'priority', list: 'getallpriority', create: 'addpriority', update: 'updatepriority', destroy: 'deletepriority', pageSize: 10,
                 searchable: false,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
@@ -737,7 +737,7 @@
                 ]
             },
             taskStatuses: {
-                title: 'Task Statuses', subtitle: 'Maintain workflow status labels.', endpoint: 'taskstatus', list: 'getalltaskstatus', create: 'addtaskstatus', update: 'updatetaskstatus', destroy: 'deletetaskstatus', pageSize: 5,
+                title: 'Task Statuses',  endpoint: 'taskstatus', list: 'getalltaskstatus', create: 'addtaskstatus', update: 'updatetaskstatus', destroy: 'deletetaskstatus', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
@@ -750,7 +750,7 @@
                 ]
             },
             users: {
-                title: 'Users', subtitle: 'Create and maintain team accounts.', endpoint: 'user', list: 'getalluser', create: 'adduser', update: 'updateuser', destroy: 'deleteuser', pageSize: 5,
+                title: 'Users',  endpoint: 'user', list: 'getalluser', create: 'adduser', update: 'updateuser', destroy: 'deleteuser', pageSize: 5,
                 searchable: true,
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
@@ -771,7 +771,7 @@
                 ]
             },
             tasks: {
-                title: 'Tasks', subtitle: 'Create tasks and assign them to users.', endpoint: 'task', list: 'getalltask', create: 'createtask', update: 'updatetask', destroy: 'deletetask', pageSize: 5,
+                title: 'Tasks',  endpoint: 'task', list: 'getalltask', create: 'createtask', update: 'updatetask', destroy: 'deletetask', pageSize: 5,
                 searchable: true,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
@@ -794,7 +794,7 @@
                 ]
             },
             taskStatusLogs: {
-                title: 'Task Status Logs', subtitle: 'Review activity history and edit records from the side panel.', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
+                title: 'Task Status Logs', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'task_id', label: 'Task', type: 'select', lookup: 'tasks', required: true, lockOnEdit: true },
@@ -815,7 +815,7 @@
                 ]
             },
             documents: {
-                title: 'Documents', subtitle: 'Maintain task-related document metadata.', endpoint: 'document', list: 'getalldocument', create: 'adddocument', update: 'updatedocument', destroy: 'deletedocument', pageSize: 5,
+                title: 'Documents', endpoint: 'document', list: 'getalldocument', create: 'adddocument', update: 'updatedocument', destroy: 'deletedocument', pageSize: 5,
                 searchable: false,
                 fields: [
                     { name: 'task_id', label: 'Task', type: 'select', lookup: 'tasks', required: true },
@@ -1009,7 +1009,7 @@
 
             $('#moduleRoot').html(html);
             $('#pageTitle').text('Dashboard');
-            $('#pageSubtitle').text('A single control surface for the whole Smart Office system.');
+          
         }
 
         function getDrawerText(moduleName, mode) {
@@ -1092,8 +1092,8 @@
                         </div>
                         <div class="toolbar">
                             ${searchHtml}
-                            ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary">New</button>' : ''}
-                            <button id="refreshButton" type="button" class="btn btn-secondary">Refresh</button>
+${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria-label="New" title="New"><span style="font-size:18px; line-height:1;">+</span></button>' : ''}
+<button id="refreshButton" type="button" class="btn btn-secondary" aria-label="Refresh" title="Refresh"><span style="font-size:16px; line-height:1;">⟳</span></button>
                         </div>
                     </div>
 

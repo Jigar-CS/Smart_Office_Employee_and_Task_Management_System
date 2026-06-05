@@ -33,7 +33,9 @@ class TaskStatusModelController extends Controller
         $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
+            'search' => 'nullable|string|max:255',
         ], [
+
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
             'limit.min' => 'Limit must be at least :min.',
@@ -46,7 +48,20 @@ class TaskStatusModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
-        $taskStatusesQuery = TaskStatusModel::where('status', 1)->orderBy('task_status_id', 'asc');
+        $taskStatusesQuery = TaskStatusModel::where('status', 1)
+            ->orderBy('task_status_id', 'asc');
+
+
+
+        if ($request->filled('search')) {
+
+            $search = trim($request->input('search'));
+            $taskStatusesQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
         $count = $taskStatusesQuery->count();
         $taskStatuses = $taskStatusesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
 

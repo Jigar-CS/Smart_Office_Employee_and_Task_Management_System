@@ -14,13 +14,17 @@ class TaskStatusLogModelController extends Controller
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
             'user_id' => 'nullable|integer|exists:tbl_users,user_id',
+            'search' => 'nullable|string|max:255',
         ]);
+
+
 
         if ($valid->fails()) {
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
         $logsQuery = TaskStatusLogModel::query()
+
             ->leftJoin('tbl_tasks as t', 'tbl_task_status_log.task_id', '=', 't.task_id')
             ->leftJoin('tbl_departments as d', 'tbl_task_status_log.department_id', '=', 'd.department_id')
             ->leftJoin('tbl_users as assigned_by_user', 'tbl_task_status_log.assigned_by', '=', 'assigned_by_user.user_id')
@@ -39,7 +43,21 @@ class TaskStatusLogModelController extends Controller
             ->where('tbl_task_status_log.status', 1)
             ->orderBy('tbl_task_status_log.status_log_id', 'asc');
 
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $logsQuery->where(function ($q) use ($search) {
+                $q->where('t.title', 'like', '%' . $search . '%')
+                  ->orWhere('d.name', 'like', '%' . $search . '%')
+                  ->orWhere('assigned_by_user.name', 'like', '%' . $search . '%')
+                  ->orWhere('changed_by_user.name', 'like', '%' . $search . '%')
+                  ->orWhere('from_status.title', 'like', '%' . $search . '%')
+                  ->orWhere('to_status.title', 'like', '%' . $search . '%')
+                  ->orWhere('tbl_task_status_log.remarks', 'like', '%' . $search . '%');
+            });
+        }
+
         if ($request->filled('user_id')) {
+
             $logsQuery->whereExists(function ($query) use ($request) {
                 $query->selectRaw('1')
                     ->from('tbl_task_assignments as ta')
