@@ -612,7 +612,7 @@
                 <img src="{{ asset('New_logo.png') }}" alt="Smart Office">
                 <div>
                     <strong>Smart Office</strong>
-                    <span>Operations Console</span>
+                   
                 </div>
             </div>
 
@@ -968,7 +968,7 @@
         function renderSidebar() {
             const navHtml = getVisibleModuleConfig().map(({ key, cfg }) => {
                 const label = key === 'overview' ? 'Overview' : cfg.title;
-                return `<button type="button" class="${key === state.activeModule ? 'active' : ''}" data-module="${key}"><span>${escapeHtml(label)}</span><small>${key === 'overview' ? 'Summary' : 'Manage'}</small></button>`;
+                return `<button type="button" class="${key === state.activeModule ? 'active' : ''}" data-module="${key}"><span>${escapeHtml(label)}</span><small>${key === 'overview' ? ' ' : ' '}</small></button>`;
             }).join('');
 
             if (!getVisibleModuleOrder().includes(state.activeModule)) {
