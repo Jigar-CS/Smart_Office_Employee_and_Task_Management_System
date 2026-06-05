@@ -30,14 +30,14 @@ class PriorityModelController extends Controller
 
     public function getallpriority(Request $request)
     {
-$valid = Validator::make($request->all(), [
+        $valid = Validator::make($request->all(), [
             'limit' => 'required|integer|min:1',
             'offset' => 'required|integer|min:0',
             'search' => 'nullable|string|max:255',
         ], [
-
             'limit.required' => 'Limit is required.',
             'limit.integer' => 'Limit must be an integer.',
+
             'limit.min' => 'Limit must be at least :min.',
             'offset.required' => 'Offset is required.',
             'offset.integer' => 'Offset must be an integer.',
@@ -53,11 +53,21 @@ $valid = Validator::make($request->all(), [
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+
+            // Security: reject HTML/script input
+            if (
+                preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) ||
+                preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)
+            ) {
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
+
             $prioritiesQuery->where(function ($q) use ($search) {
                 $q->where('title', 'like', '%' . $search . '%')
                   ->orWhere('level', 'like', '%' . $search . '%');
             });
         }
+
 
         $count = $prioritiesQuery->count();
         $priorities = $prioritiesQuery->skip($request->input('offset'))->take($request->input('limit'))->get();
@@ -76,7 +86,21 @@ $valid = Validator::make($request->all(), [
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
+        // Security: reject HTML/script payloads for create
+        $title = (string) $request->input('title', '');
+        $level = (string) $request->input('level', '');
+
+        if (
+            preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $title) ||
+            preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $title) ||
+            preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $level) ||
+            preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $level)
+        ) {
+            return response()->json(['status' => 400, 'error' => 'Invalid input.'], 400);
+        }
+
         try {
+
             $caller = $request->user();
             $title = $request->input('title');
 
@@ -118,6 +142,7 @@ $valid = Validator::make($request->all(), [
             'title' => 'nullable|string|max:255',
             'level' => 'nullable|string|max:255',
         ], [
+
             'id.required' => 'Priority id is required.',
             'id.integer' => 'Priority id must be an integer.',
             'id.exists' => 'Priority not found.',

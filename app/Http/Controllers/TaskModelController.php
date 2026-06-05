@@ -113,7 +113,18 @@ class TaskModelController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+            // Security: reject HTML/script input
+            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
+            // Security: reject HTML/script input
+            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
+
             $tasksQuery->where(function($q) use ($search) {
+
+
                 $q->where('tbl_tasks.title', 'like', '%' . $search . '%')
                   ->orWhere('tbl_tasks.description', 'like', '%' . $search . '%')
                   ->orWhere('p.title', 'like', '%' . $search . '%')

@@ -56,10 +56,16 @@ class TaskStatusModelController extends Controller
         if ($request->filled('search')) {
 
             $search = trim($request->input('search'));
+            // Security: reject HTML/script input (including tags like <script>...)
+            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
+
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
             $taskStatusesQuery->where(function ($q) use ($search) {
                 $q->where('title', 'like', '%' . $search . '%')
                   ->orWhere('description', 'like', '%' . $search . '%');
             });
+
         }
 
         $count = $taskStatusesQuery->count();
@@ -79,9 +85,23 @@ class TaskStatusModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
+        // Security: reject HTML/script payloads for create
+        $title = (string) $request->input('title', '');
+        $description = (string) $request->input('description', '');
+
+        if (
+            preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $title) ||
+            preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $title) ||
+            preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $description) ||
+            preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $description)
+        ) {
+            return response()->json(['status' => 400, 'error' => 'Invalid input.'], 400);
+        }
+
         try {
             $caller = $request->user();
             $title = $request->input('title');
+
 
             $existing = TaskStatusModel::where('title', $title)->first();
 

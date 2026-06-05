@@ -53,7 +53,13 @@ class DocumentModelController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+            // Security: reject HTML/script input (including tags like <script>...)
+            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
+
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
             $documentsQuery->where(function ($q) use ($search) {
+
                 $q->where('title', 'like', '%' . $search . '%')
                   ->orWhere('file_name', 'like', '%' . $search . '%')
                   ->orWhere('file_path', 'like', '%' . $search . '%')

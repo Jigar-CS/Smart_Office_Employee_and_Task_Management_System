@@ -45,7 +45,13 @@ class TaskStatusLogModelController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+            // Security: reject HTML/script input (including tags like <script>...)
+            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
+
+                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
+            }
             $logsQuery->where(function ($q) use ($search) {
+
                 $q->where('t.title', 'like', '%' . $search . '%')
                   ->orWhere('d.name', 'like', '%' . $search . '%')
                   ->orWhere('assigned_by_user.name', 'like', '%' . $search . '%')
@@ -89,7 +95,18 @@ class TaskStatusLogModelController extends Controller
             return response()->json(['status' => 400, 'error' => $valid->errors()], 400);
         }
 
+        // Security: reject HTML/script payloads for create
+        $remarks = (string) $request->input('remarks', '');
+
+        if (
+            preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $remarks) ||
+            preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $remarks)
+        ) {
+            return response()->json(['status' => 400, 'error' => 'Invalid input.'], 400);
+        }
+
         try {
+
             $taskStatusLog = new TaskStatusLogModel();
             $taskStatusLog->task_id = $request->input('task_id');
             $taskStatusLog->assigned_by = $request->input('assigned_by');
