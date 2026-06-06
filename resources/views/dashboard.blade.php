@@ -343,7 +343,7 @@
         tbody td {
             padding: 12px;
             border-top: 1px solid rgba(43,125,233,0.06);
-            vertical-align: top;
+            vertical-align: middle;
             color: var(--text);
         }
 
@@ -353,10 +353,15 @@
             text-align: center;
         }
 
+        /* FIXED: Force pencil and bin icons to align perfectly side by side */
         .row-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            display: inline-flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+            width: max-content !important;
         }
 
         .mini {
@@ -378,6 +383,7 @@
             width: 36px;
             height: 32px;
             padding: 0;
+            flex-shrink: 0;
         }
 
         .icon-mini svg {
@@ -539,7 +545,6 @@
 
         .overview-card p { margin: 8px 0 0; color: var(--muted); line-height: 1.6; }
 
-        /* --- Premium Top-Right Notification System Styles --- */
         .toast-container {
             position: fixed;
             top: 24px;
@@ -567,17 +572,9 @@
             opacity: 0;
         }
 
-        .custom-toast.toast-error {
-            background: var(--danger);
-        }
-
-        .custom-toast.toast-success {
-            background: var(--success);
-        }
-
-        .custom-toast.toast-info {
-            background: var(--brand);
-        }
+        .custom-toast.toast-error { background: var(--danger); }
+        .custom-toast.toast-success { background: var(--success); }
+        .custom-toast.toast-info { background: var(--brand); }
 
         .custom-toast.show {
             transform: translateX(0);
@@ -716,20 +713,20 @@
 
         const moduleOrder = ['overview', 'departments', 'roles', 'priorities', 'taskStatuses', 'users', 'tasks', 'taskStatusLogs', 'documents'];
 
-        function isSuperAdmin() {
+        function isAdminSide() {
             const roleId = Number(state.user?.role_id || 0);
             const roleName = String(state.user?.role_name || '').toLowerCase().trim();
-            return roleId === 1 || roleId === 2 || roleName.includes('admin');
+            return roleId === 1 || roleId === 2 || roleName.includes('admin') || roleName.includes('manager');
         }
 
-        // FIXED LOGIC: Checks user_id directly instead of role_id
         function canManageTasks() {
-            const userId = Number(state.user?.user_id || 0);
-            return userId === 1 || userId === 2;
+            const roleId = Number(state.user?.role_id || 0);
+            const roleName = String(state.user?.role_name || '').toLowerCase().trim();
+            return roleId === 1 || roleId === 2 || roleName.includes('admin') || roleName.includes('manager');
         }
 
         function getVisibleModuleOrder() {
-            if (isSuperAdmin()) {
+            if (isAdminSide()) {
                 return moduleOrder;
             }
             return ['overview', 'tasks', 'taskStatusLogs', 'documents'];
@@ -737,7 +734,7 @@
 
         const moduleLookupMap = {
             users: ['roles', 'departments'],
-            tasks: ['priorities', 'taskStatuses', 'departments'],
+            tasks: ['priorities', 'taskStatuses', 'departments', 'users'],
             taskStatusLogs: ['tasks', 'users', 'taskStatuses', 'departments'],
             documents: ['tasks']
         };
@@ -827,19 +824,28 @@
                     { name: 'priority_id', label: 'Priority', type: 'select', lookup: 'priorities', required: true },
                     { name: 'task_status_id', label: 'Status', type: 'select', lookup: 'taskStatuses', required: true },
                     { name: 'department_id', label: 'Department', type: 'select', lookup: 'departments', required: true },
-                    { name: 'assigned_user_ids', label: 'Assigned Users', type: 'multi-select', createOnly: true, required: true }
+                    { name: 'assigned_user_ids', label: 'Assigned Users', type: 'multi-select', required: true }
                 ],
                 columns: [
-    { key: 'task_id', label: 'ID' },
-    { key: 'title', label: 'Title' },
-    { key: 'start_date', label: 'Start', render: row => formatDate(row.start_date) },
-    { key: 'due_date', label: 'Due', render: row => formatDate(row.due_date) },
-    { key: 'priority_id', label: 'Priority', lookup: 'priorities' },
-    { key: 'task_status_id', label: 'Status', lookup: 'taskStatuses' },
-    { key: 'department_id', label: 'Department', lookup: 'departments' },
-    // Changed key from 'assigned_user_ids' to 'assigned_users' to read the names from the backend fix
-    { key: 'assigned_users', label: 'Assigned Users', render: row => row.assigned_users || '-' }
-]
+                    { key: 'task_id', label: 'ID' },
+                    { key: 'title', label: 'Title' },
+                    { key: 'start_date', label: 'Start', render: row => formatDate(row.start_date) },
+                    { key: 'due_date', label: 'Due', render: row => formatDate(row.due_date) },
+                    { key: 'priority_id', label: 'Priority', lookup: 'priorities' },
+                    { key: 'task_status_id', label: 'Status', lookup: 'taskStatuses' },
+                    { key: 'department_id', label: 'Department', lookup: 'departments' },
+                    { 
+                        key: 'assigned_users', 
+                        label: 'Assigned Users', 
+                        render: row => {
+                            if (row.assigned_users) return row.assigned_users;
+                            if (Array.isArray(row.assigned_user_ids) && row.assigned_user_ids.length > 0) {
+                                return row.assigned_user_ids.map(id => lookupLabel('users', id)).filter(name => name && name !== id).join(', ');
+                            }
+                            return '-';
+                        }
+                    }
+                ]
             },
             taskStatusLogs: {
                 title: 'Task Status Logs', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
@@ -913,20 +919,17 @@
 
         function setNotice(text, type = '') {
             if (!text) return;
-            
-            if (type !== 'success' && type !== 'error') {
-                return; 
-            }
+            if (type !== 'success' && type !== 'error') return; 
             
             let toastType = type;
             let title = type === 'success' ? 'Operation Successful' : 'Operation Failed';
 
             var toastId = 'toast-' + Date.now();
-            var iconSvg = type === 'success' 
-                ? `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
-                : `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+            let iconSvg = type === 'success' 
+                ? `<svg style="width:20px;height:20px" viewBox="0 0 24 24"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>`
+                : `<svg style="width:20px;height:20px" viewBox="0 0 24 24"><path fill="currentColor" d="M13,14H11V10H13M13,18H11V16H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg>`;
 
-            var toastHtml = `
+            let toastHtml = `
                 <div id="${toastId}" class="custom-toast toast-${toastType}">
                     <div class="toast-icon">${iconSvg}</div>
                     <div class="toast-content">
@@ -936,24 +939,16 @@
                     <button class="toast-close" onclick="closeToast('${toastId}')">&times;</button>
                 </div>
             `;
-
             $('#toastContainer').append(toastHtml);
-            setTimeout(function() {
-                $(`#${toastId}`).addClass('show');
-            }, 50);
-
-            setTimeout(function() {
-                closeToast(toastId);
-            }, 4500);
+            setTimeout(function() { $(`#${toastId}`).addClass('show'); }, 50);
+            setTimeout(function() { closeToast(toastId); }, 4500);
         }
 
         function closeToast(id) {
             var $toast = $(`#${id}`);
             if ($toast.length) {
                 $toast.removeClass('show');
-                setTimeout(function() {
-                    $toast.remove();
-                }, 400);
+                setTimeout(function() { $toast.remove(); }, 400);
             }
         }
 
@@ -963,9 +958,7 @@
 
         function apiHeaders() {
             const headers = { Accept: 'application/json' };
-            if (state.token) {
-                headers.Authorization = `Bearer ${state.token}`;
-            }
+            if (state.token) { headers.Authorization = `Bearer ${state.token}`; }
             return headers;
         }
 
@@ -978,17 +971,11 @@
                     data: payload,
                     headers: apiHeaders()
                 });
-
-                if (response && response.status === 401) {
-                    handleUnauthorized();
-                }
-
+                if (response && response.status === 401) { handleUnauthorized(); }
                 return response;
             } catch (xhr) {
                 const response = xhr.responseJSON || {};
-                if (xhr.status === 401) {
-                    handleUnauthorized();
-                }
+                if (xhr.status === 401) { handleUnauthorized(); }
                 throw new Error(extractError(response));
             }
         }
@@ -1012,54 +999,41 @@
             window.location.href = '/login';
         }
 
-        function isAdminSide() {
-            const roleId = Number(state.user?.role_id || 0);
-            const roleName = String(state.user?.role_name || '').toLowerCase().trim();
-            return roleId === 1 || roleId === 2 || roleName.includes('admin') || roleName.includes('manager');
-        }
-
         function lookupLabel(name, id) {
             const items = state.lookups[name] || [];
             const key = getLookupKey(name);
             const labelKey = getLookupLabelKey(name);
             const found = items.find(item => String(item[key]) === String(id));
-            return found ? found[labelKey] : id || '-';
+            return found ? found[labelKey] : id;
         }
 
         function getLookupKey(name) {
-            switch (name) {
-                case 'departments': return 'department_id';
-                case 'roles': return 'role_id';
-                case 'priorities': return 'priority_id';
-                case 'taskStatuses': return 'task_status_id';
-                case 'users': return 'user_id';
-                case 'tasks': return 'task_id';
-                default: return 'id';
-            }
+            if (name === 'departments') return 'department_id';
+            if (name === 'roles') return 'role_id';
+            if (name === 'priorities') return 'priority_id';
+            if (name === 'taskStatuses') return 'task_status_id';
+            if (name === 'users') return 'user_id';
+            if (name === 'tasks') return 'task_id';
+            return 'id';
         }
 
         function getLookupLabelKey(name) {
-            switch (name) {
-                case 'departments':
-                case 'roles': return 'name';
-                case 'priorities':
-                case 'taskStatuses': return 'title';
-                case 'users': return 'name';
-                case 'tasks': return 'title';
-                default: return 'name';
-            }
+            if (name === 'priorities' || name === 'taskStatuses') return 'title';
+            return 'name';
         }
 
         function renderSidebar() {
-            const navHtml = getVisibleModuleConfig().map(({ key, cfg }) => {
-                const label = key === 'overview' ? 'Overview' : cfg.title;
-                return `<button type="button" class="${key === state.activeModule ? 'active' : ''}" data-module="${key}"><span>${escapeHtml(label)}</span><small></small></button>`;
+            const active = state.activeModule;
+            const visibleKeys = getVisibleModuleOrder();
+            const navHtml = visibleKeys.map((key) => {
+                const cfg = modules[key];
+                const cls = active === key ? 'active' : '';
+                return `<button type="button" class="${cls}" data-module="${key}">${escapeHtml(cfg.title)}</button>`;
             }).join('');
 
             if (!getVisibleModuleOrder().includes(state.activeModule)) {
                 state.activeModule = 'overview';
             }
-
             $('#sidebarNav').html(navHtml);
             $('#profileName').text(state.user?.name || 'Authenticated User');
             $('#profileEmail').text(state.user?.email || '');
@@ -1068,7 +1042,6 @@
 
         function renderOverview() {
             const visibleKeys = getVisibleModuleOrder();
-
             const cards = [
                 { key: 'departments', label: 'Departments', value: state.counts.departments ?? 0, hint: 'Department master records' },
                 { key: 'roles', label: 'Roles', value: state.counts.roles ?? 0, hint: 'Access roles and permissions' },
@@ -1090,7 +1063,6 @@
                     `).join('')}
                 </section>
             `;
-
             $('#moduleRoot').html(html);
             $('#pageTitle').text('Dashboard');
         }
@@ -1098,10 +1070,7 @@
         function getDrawerText(moduleName, mode) {
             const cfg = modules[moduleName];
             const title = cfg ? cfg.title : 'Record';
-
-            if (mode === 'create') {
-                return { title: `Create ${title}` };
-            }
+            if (mode === 'create') { return { title: `Create ${title}` }; }
             return { title: `Editing ${title}` };
         }
 
@@ -1131,36 +1100,65 @@
 
         function prepareNewRecord(moduleName) {
             if (moduleName === 'tasks' && !canManageTasks()) {
-                setNotice('Unauthorized: Only Admin (ID: 1) or Manager (ID: 2) can assign tasks.', 'error');
+                setNotice('Unauthorized: Only Admin or Manager roles can assign tasks.', 'error');
                 return;
             }
-
             state.records[moduleName] = state.records[moduleName] || {};
             state.records[moduleName].editing = null;
             state.editingId[moduleName] = null;
-            if ($('#moduleForm').length) {
-                $('#moduleForm')[0].reset();
-                $('#recordId').val('');
-            }
+
+            $('#recordId').val('');
+            if ($('#moduleForm').length) { $('#moduleForm')[0].reset(); }
 
             if (moduleName === 'tasks') {
                 state.taskAssignees = [];
                 $('[name="assigned_user_ids[]"]').html('<option value="">Select a department first</option>').val([]);
                 $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').val('').prop('disabled', true);
             }
-
             openEditorDrawer(moduleName, 'create');
-            setNotice(`Creating a new ${modules[moduleName].title.toLowerCase()} record.`, 'info');
         }
 
-        async function renderModule(moduleName) {
-            const cfg = modules[moduleName];
-            await ensureModuleLookups(moduleName);
-            
-            const canCreate = (moduleName === 'tasks') ? canManageTasks() : !!cfg.create;
-            const searchHtml = `<input id="moduleSearch" class="search" type="search" placeholder="Search ${escapeHtml(cfg.title.toLowerCase())}..." value="${escapeHtml(state.search[moduleName] || '')}">`;
+        async function loadModule(moduleName, page = 1) {
+            state.activeModule = moduleName;
+            renderSidebar();
+            if (moduleName === 'overview') {
+                setLoader(true);
+                try { await loadOverviewCounts(); renderOverview(); } catch(e) { setNotice(e.message, 'error'); } finally { setLoader(false); }
+                return;
+            }
 
-            const formFields = cfg.fields.map(field => renderField(moduleName, field)).join('');
+            const cfg = modules[moduleName];
+            state.pages[moduleName] = page;
+            const offset = (page - 1) * cfg.pageSize;
+
+            setLoader(true);
+            try {
+                await ensureModuleLookups(moduleName);
+                const response = await apiRequest(cfg.list, {
+                    limit: cfg.pageSize,
+                    offset: offset,
+                    search: state.search[moduleName] || ''
+                });
+
+                state.counts[moduleName] = response.count ?? (response.data || []).length;
+                renderModuleContainer(moduleName);
+                renderTableRows(moduleName, response.data || []);
+                renderPagination(moduleName);
+            } catch (error) {
+                setNotice(error.message, 'error');
+            } finally {
+                setLoader(false);
+            }
+        }
+
+        function renderModuleContainer(moduleName) {
+            const cfg = modules[moduleName];
+            const searchHtml = cfg.searchable !== false 
+                ? `<input type="search" id="moduleSearch" class="search" placeholder="Search records..." value="${escapeHtml(state.search[moduleName] || '')}" autocomplete="off">` 
+                : '';
+
+            const canCreate = cfg.create !== null;
+            const formFields = cfg.fields.map(field => renderFormField(moduleName, field)).join('');
             const drawerOpen = state.drawerModule === moduleName;
             const drawerText = getDrawerText(moduleName, state.drawerMode || 'edit');
 
@@ -1177,20 +1175,17 @@
                             <button id="refreshButton" type="button" class="btn btn-secondary" aria-label="Refresh" title="Refresh"><span style="font-size:16px; line-height:1;">⟳</span></button>
                         </div>
                     </div>
-
                     <div class="table-wrap">
                         <table>
                             <thead><tr>${cfg.columns.map(column => `<th>${escapeHtml(column.label)}</th>`).join('')}<th>Actions</th></tr></thead>
                             <tbody id="moduleTableBody"><tr><td colspan="${cfg.columns.length + 1}" class="empty">Loading...</td></tr></tbody>
                         </table>
                     </div>
-
                     <div class="pagination">
                         <div id="moduleMeta" class="meta">Ready</div>
                         <div id="moduleButtons" class="buttons"></div>
                     </div>
                 </section>
-
                 <aside id="moduleDrawer" class="panel editor-drawer ${drawerOpen ? 'open' : ''}">
                     <div class="editor-drawer-header">
                         <div>
@@ -1199,7 +1194,6 @@
                         </div>
                         <button type="button" id="closeModuleDrawer" class="btn btn-secondary">Close</button>
                     </div>
-
                     <form id="moduleForm" autocomplete="off">
                         <input type="hidden" name="id" id="recordId" value="">
                         <div class="form-grid">${formFields}</div>
@@ -1208,13 +1202,11 @@
                             <button type="button" id="resetButton" class="btn btn-secondary">Reset</button>
                         </div>
                     </form>
-
                     <div id="moduleDrawerEmpty" class="editor-drawer-empty" style="${drawerOpen ? 'display:none;' : ''}">
                         Choose Edit on any row, or New if this module supports creating records.
                     </div>
                 </aside>
             `;
-
             $('#moduleRoot').html(html);
             $('#pageTitle').text(cfg.title);
 
@@ -1222,84 +1214,35 @@
                 event.preventDefault();
                 submitModule(moduleName);
             });
-
-            $('#resetButton').on('click', function () {
-                clearForm(moduleName);
-            });
-
-            $('#closeModuleDrawer').on('click', function () {
-                clearForm(moduleName);
-            });
-
-            $('#editorBackdrop').off('click').on('click', function () {
-                clearForm(moduleName);
-            });
+            $('#resetButton').on('click', function () { clearForm(moduleName); });
+            $('#closeModuleDrawer').on('click', function () { clearForm(moduleName); });
+            $('#editorBackdrop').off('click').on('click', function () { clearForm(moduleName); });
 
             if (canCreate) {
-                $('#newButton').on('click', function () {
-                    prepareNewRecord(moduleName);
-                });
+                $('#newButton').on('click', function () { prepareNewRecord(moduleName); });
+            }
+            $('#refreshButton').on('click', function () { loadModule(moduleName); });
+
+            if (cfg.searchable !== false) {
+                $('#moduleSearch').off('input.moduleSearch').on('input.moduleSearch', debounce(function () {
+                    state.search[moduleName] = $(this).val();
+                    loadModule(moduleName, 1);
+                }, 400));
             }
 
-            $('#refreshButton').on('click', function () {
-                loadModule(moduleName);
-            });
-
-            $('#moduleSearch').off('input.moduleSearch').on('input.moduleSearch', function () {
-                state.search[moduleName] = $(this).val().trim();
-                clearTimeout(state.searchTimer);
-                state.searchTimer = setTimeout(() => loadModule(moduleName, 1), 250);
-            });
-
-            if (moduleName === 'tasks') {
-                $('#field_tasks_department_id').off('change.taskAssignees').on('change.taskAssignees', function () {
-                    const departmentId = $(this).val();
-                    const assigneeFilter = $('[data-multi-filter-for="field_tasks_assigned_user_ids"]');
-                    assigneeFilter.val('');
-                    void loadTaskAssignees(departmentId).then(() => {
-                        syncTaskAssigneeFilter();
-                    });
-                });
-
-                $(document).off('input.taskAssigneeFilter').on('input.taskAssigneeFilter', '[data-multi-filter-for="field_tasks_assigned_user_ids"]', function () {
-                    filterMultiSelectOptions($('[data-task-assignee-select]'), $(this).val());
-                });
-            }
-
-            $(document).off('click.moduleImagePreview').on('click.moduleImagePreview', 'button[id$="_preview"]', function () {
-                const btn = $(this);
-                const fileInput = btn.closest('.field').find('input[type="file"]')[0];
-                if (!fileInput || !fileInput.files || !fileInput.files.length) {
-                    setNotice('Please choose an image file first.', 'error');
-                    return;
-                }
-                const file = fileInput.files[0];
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const win = window.open('', '_blank');
-                    const img = win.document.createElement('img');
-                    img.src = e.target.result;
-                    img.style.maxWidth = '100%';
-                    win.document.body.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-
-            loadModule(moduleName);
+            bindFormTriggers(moduleName);
         }
 
-        function renderField(moduleName, field) {
-            if (field.createOnly && state.editingId[moduleName]) {
-                return '';
-            }
-
-            const value = getFieldValue(moduleName, field.name);
+        function renderFormField(moduleName, field) {
             const id = `field_${moduleName}_${field.name}`;
-            const required = field.required && !(field.name === 'password' && state.editingId[moduleName]);
-            const label = `${escapeHtml(field.label)}${required ? ' *' : ''}`;
+            const label = escapeHtml(field.label);
+            const value = getFieldValue(moduleName, field.name);
+            const required = field.required ? 'required' : '';
+            const placeholder = escapeHtml(field.placeholder || '');
+            const type = field.type || 'text';
 
             if (field.lockOnEdit && state.editingId[moduleName]) {
-                const selectedLabel = lookupLabel(field.lookup, value);
+                const selectedLabel = field.lookup ? lookupLabel(field.lookup, value) : value;
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
@@ -1313,10 +1256,7 @@
             if (moduleName === 'tasks' && field.name === 'assigned_user_ids') {
                 const selectedValues = Array.isArray(value) ? value.map(String) : [];
                 const currentDepartmentId = $('#field_tasks_department_id').val() || state.records.tasks?.editing?.department_id || '';
-                const helperText = currentDepartmentId
-                    ? 'Choose one or more users from the selected department.'
-                    : 'Select a department first to load the user list.';
-
+                const helperText = currentDepartmentId ? 'Choose one or more users from the selected department.' : 'Select a department first to load the user list.';
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
@@ -1333,7 +1273,7 @@
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
-                        <textarea id="${id}" name="${field.name}" class="textarea" ${required ? 'required' : ''} placeholder="${escapeHtml(field.placeholder || '')}">${escapeHtml(value)}</textarea>
+                        <textarea id="${id}" name="${field.name}" class="textarea" ${required ? 'required' : ''} placeholder="${placeholder}">${escapeHtml(value)}</textarea>
                     </div>
                 `;
             }
@@ -1344,43 +1284,35 @@
                 const labelKey = getLookupLabelKey(field.lookup);
                 const multiple = field.type === 'multi-select';
                 const selectedValues = multiple ? (Array.isArray(value) ? value.map(String) : []) : [String(value || '')];
-
+                
                 const options = [`<option value="">Select ${escapeHtml(field.label)}</option>`].concat(items.map(item => {
                     const itemValue = String(item[key]);
                     const selected = selectedValues.includes(itemValue) ? 'selected' : '';
                     return `<option value="${escapeHtml(itemValue)}" ${selected}>${escapeHtml(item[labelKey])}</option>`;
                 })).join('');
 
-                const helper = multiple
-                    ? `<small class="field-help">Use the filter below to search users, then hold Ctrl or Cmd to select multiple names.</small>`
-                    : '';
-                const filter = multiple && field.lookup === 'users'
-                    ? `<input type="search" class="control" data-multi-filter-for="field_${moduleName}_${field.name}" placeholder="Filter users...">`
-                    : '';
-
+                const helper = multiple ? `<small class="field-help">Use the filter below to search users, then hold Ctrl or Cmd to select multiple names.</small>` : '';
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
                         ${helper}
-                        ${filter}
-                        <select id="${id}" name="${field.name}${multiple ? '[]' : ''}" class="select" ${multiple ? 'multiple size="5"' : ''} ${required ? 'required' : ''}>${options}</select>
+                        <select id="${id}" name="${field.name}${multiple ? '[]' : ''}" class="select" ${multiple ? 'multiple size="5"' : ''} ${required}>
+                            ${options}
+                        </select>
                     </div>
                 `;
             }
 
-            const type = field.type || 'text';
-            const inputValue = value || '';
-            const placeholder = escapeHtml(field.placeholder || `Enter ${field.label.toLowerCase()}`);
-            
+            let inputValue = value;
+            if (type === 'password') { inputValue = ''; }
+            if (type === 'date' && inputValue) { inputValue = String(inputValue).split(' ')[0]; }
+
             if (moduleName === 'users' && field.name === 'image') {
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
-                        <input id="${id}" name="${field.name}" class="control" type="${type}" value="${escapeHtml(inputValue)}" placeholder="${placeholder}" ${required ? 'required' : ''}>
-                        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-                            <input id="${id}_file" name="image_file" type="file" accept="image/*" style="flex:1;" />
-                            <button type="button" id="${id}_preview" class="btn btn-secondary">Preview</button>
-                        </div>
+                        <input id="${id}" name="${field.name}" class="control" type="text" value="${escapeHtml(inputValue)}" placeholder="${placeholder}">
+                        <input type="file" name="image_file" id="userImageFile" class="control" style="margin-top:6px;" accept="image/*">
                         <small class="field-help">Upload an image file or paste an image URL.</small>
                     </div>
                 `;
@@ -1389,7 +1321,7 @@
             return `
                 <div class="field ${field.full ? 'full' : ''}">
                     <label for="${id}">${label}</label>
-                    <input id="${id}" name="${field.name}" class="control" type="${type}" value="${escapeHtml(inputValue)}" placeholder="${placeholder}" ${required ? 'required' : ''}>
+                    <input id="${id}" name="${field.name}" class="control" type="${type}" value="${escapeHtml(inputValue)}" placeholder="${placeholder}" ${required}>
                 </div>
             `;
         }
@@ -1427,8 +1359,7 @@
 
         async function loadLookup(name) {
             const endpoint = lookupSources[name];
-            if (!endpoint || state.lookups[name]) return;
-
+            if (!endpoint) return;
             const response = await apiRequest(endpoint, { limit: 500, offset: 0 });
             state.lookups[name] = response.data || [];
             state.counts[name] = response.count ?? (response.data || []).length;
@@ -1442,60 +1373,24 @@
         async function loadOverviewCounts() {
             const totals = {};
             const visible = new Set(getVisibleModuleOrder());
-
             const requests = Object.entries(modules)
                 .filter(([name]) => name !== 'overview' && visible.has(name))
                 .map(async ([name, cfg]) => {
                     const response = await apiRequest(cfg.list, { limit: 1, offset: 0, search: state.search[name] || '' });
                     totals[name] = response.count ?? (response.data || []).length;
                 });
-
             await Promise.all(requests);
             state.counts = { ...state.counts, ...totals };
-
-            if ($('#moduleRoot').length && state.activeModule === 'overview') {
-                renderOverview();
-            }
         }
 
-        async function loadModule(moduleName, page = 1) {
+        function renderTableRows(moduleName, rows) {
             const cfg = modules[moduleName];
-            if (!cfg || moduleName === 'overview') return;
-
-            await ensureModuleLookups(moduleName);
-            state.pages[moduleName] = page;
-            setLoader(true);
-
-            try {
-                const offset = (page - 1) * cfg.pageSize;
-                const payload = { limit: cfg.pageSize, offset };
-                if (state.search[moduleName]) {
-                    payload.search = state.search[moduleName];
-                }
-
-                const response = await apiRequest(cfg.list, payload);
-                const rows = response.data || [];
-                state.counts[moduleName] = response.count ?? rows.length;
-                renderTable(moduleName, rows);
-                renderPagination(moduleName);
-                $('#moduleMeta').text(`${rows.length} of ${state.counts[moduleName]} records shown`);
-            } catch (error) {
-                setNotice(error.message, 'error');
-                $('#moduleTableBody').html(`<tr><td colspan="${cfg.columns.length + 1}" class="empty">${escapeHtml(error.message)}</td></tr>`);
-            } finally {
-                setLoader(false);
-            }
-        }
-
-        function renderTable(moduleName, rows) {
-            const cfg = modules[moduleName];
-            if (!rows.length) {
-                $('#moduleTableBody').html(`<tr><td colspan="${cfg.columns.length + 1}" class="empty">No records found.</td></tr>`);
+            if (!rows || !rows.length) {
+                $('#moduleTableBody').html(`<tr><td colspan="${cfg.columns.length + 1}" class="empty">No matching records found.</td></tr>`);
                 return;
             }
 
             const isAuthorizedToAlterTasks = (moduleName !== 'tasks') || canManageTasks();
-
             const html = rows.map((row) => {
                 const cells = cfg.columns.map((column) => {
                     const raw = column.render ? column.render(row) : (column.lookup ? lookupLabel(column.lookup, row[column.key]) : row[column.key]);
@@ -1534,9 +1429,7 @@
             $('#moduleTableBody button[data-action="edit"]').off('click').on('click', function () {
                 const id = $(this).data('id');
                 const item = rows.find(row => String(getRowId(row, moduleName)) === String(id));
-                if (item) {
-                    fillForm(moduleName, item);
-                }
+                if (item) { fillForm(moduleName, item); }
             });
 
             $('#moduleTableBody button[data-action="delete"]').off('click').on('click', function () {
@@ -1546,77 +1439,63 @@
         }
 
         function renderCell(raw, column) {
-            if (column.render || column.lookup) {
-                return raw === null || raw === undefined || raw === '' ? '-' : raw;
-            }
-            return escapeHtml(raw ?? column.fallback ?? '-');
+            if (column.render || column.lookup) return raw;
+            return escapeHtml(raw);
         }
 
-        function renderTaskAssigneeOptions(selectedValues = []) {
-            const items = state.taskAssignees || [];
-            if (!items.length) {
-                return '<option value="">Select a department first</option>';
-            }
+        function bindFormTriggers(moduleName) {
+            if (moduleName === 'tasks') {
+                $('#field_tasks_department_id').on('change', function () {
+                    const deptId = $(this).val();
+                    void loadTaskAssignees(deptId, []);
+                });
 
-            return items.map(item => {
-                const itemValue = String(item.user_id);
-                const selected = selectedValues.includes(itemValue) ? 'selected' : '';
-                return `<option value="${escapeHtml(itemValue)}" ${selected}>${escapeHtml(item.name)}</option>`;
-            }).join('');
+                $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').on('input', function () {
+                    filterMultiSelectOptions($(this));
+                });
+            }
         }
 
         async function loadTaskAssignees(departmentId, selectedValues = []) {
-            const normalizedDepartmentId = String(departmentId || '').trim();
-            state.taskAssignees = [];
-            const filterInput = $('[data-multi-filter-for="field_tasks_assigned_user_ids"]');
-
-            if (!normalizedDepartmentId) {
-                const select = $('[name="assigned_user_ids[]"]');
-                if (select.length) {
-                    select.html('<option value="">Select a department first</option>');
-                    select.val([]);
-                }
-                if (filterInput.length) {
-                    filterInput.val('').prop('disabled', true);
-                }
-                return [];
+            if (!departmentId) {
+                state.taskAssignees = [];
+                $('[name="assigned_user_ids[]"]').html('<option value="">Select a department first</option>').val([]);
+                $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').val('').prop('disabled', true);
+                return;
             }
 
-            const response = await apiRequest('getalluser', {
-                limit: 500,
-                offset: 0,
-                department_id: normalizedDepartmentId
-            });
+            try {
+                const response = await apiRequest('getalluser', { limit: 300, offset: 0 });
+                const allUsers = response.data || [];
+                state.taskAssignees = allUsers.filter(u => String(u.department_id) === String(departmentId));
 
-            state.taskAssignees = response.data || [];
-
-            const select = $('[name="assigned_user_ids[]"]');
-            if (select.length) {
-                select.html(renderTaskAssigneeOptions(selectedValues.map(String)));
+                const optionsHtml = renderTaskAssigneeOptions(selectedValues.map(String));
+                $('[name="assigned_user_ids[]"]').html(optionsHtml).val(selectedValues);
+                $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').prop('disabled', false);
+            } catch (err) {
+                setNotice('Failed to filter users by department.', 'error');
             }
-
-            if (filterInput.length) {
-                filterInput.prop('disabled', false);
-            }
-
-            return state.taskAssignees;
         }
 
-        function syncTaskAssigneeFilter() {
-            const filterValue = $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').val() || '';
-            filterMultiSelectOptions($('[name="assigned_user_ids[]"]'), filterValue);
+        function renderTaskAssigneeOptions(selectedValues = []) {
+            if (!state.taskAssignees || !state.taskAssignees.length) {
+                return '<option value="">No users found in this department</option>';
+            }
+            return state.taskAssignees.map(user => {
+                const userIdStr = String(user.user_id);
+                const selected = selectedValues.includes(userIdStr) ? 'selected' : '';
+                return `<option value="${escapeHtml(userIdStr)}" ${selected}>${escapeHtml(user.name)} (${escapeHtml(user.email)})</option>`;
+            }).join('');
         }
 
-        function filterMultiSelectOptions(selectElement, query) {
-            const normalizedQuery = String(query || '').toLowerCase().trim();
-            $(selectElement).find('option').each(function () {
+        function filterMultiSelectOptions($filterInput) {
+            const targetId = $filterInput.data('multi-filter-for');
+            const query = $filterInput.val().toLowerCase().trim();
+            $(`#${targetId} option`).each(function () {
                 const option = $(this);
-                if (!option.val()) {
-                    option.prop('hidden', false);
-                    return;
-                }
+                if (!option.val()) { option.prop('hidden', false); return; }
                 const label = option.text().toLowerCase();
-                option.prop('hidden', normalizedQuery ? !label.includes(normalizedQuery) : false);
+                option.prop('hidden', query ? !label.includes(query) : false);
             });
         }
 
@@ -1649,16 +1528,14 @@
                 const nextPage = Number($(this).data('page'));
                 loadModule(moduleName, nextPage);
             });
-
             $('#moduleMeta').text(`Page ${current} of ${pages} · ${total} total records`);
         }
 
         function fillForm(moduleName, item) {
             if (moduleName === 'tasks' && !canManageTasks()) {
-                setNotice('Unauthorized: Only Admin (User ID: 1) or Manager (User ID: 2) can update tasks.', 'error');
+                setNotice('Unauthorized: Only Admin or Manager roles can update tasks.', 'error');
                 return;
             }
-
             setEditing(moduleName, item);
             $('#recordId').val(getRowId(item, moduleName));
 
@@ -1667,48 +1544,21 @@
                 const departmentId = item.department_id || '';
                 
                 modules[moduleName].fields.forEach((field) => {
-                    if (field.createOnly || field.name === 'assigned_user_ids') return;
+                    if (field.createOnly) return;
                     const selector = `[name="${field.name}"]`;
-                    $(selector).val(item[field.name] ?? '');
+                    if ($(selector).length) { $(selector).val(item[field.name] ?? ''); }
                 });
 
                 void loadTaskAssignees(departmentId, assignedValues.map(String)).then(() => {
                     $('[name="assigned_user_ids[]"]').val(assignedValues.map(String));
-                    syncTaskAssigneeFilter();
                 });
             } else {
                 modules[moduleName].fields.forEach((field) => {
-                    if (field.createOnly) return;
-                    const selector = `[name="${field.name}${field.type === 'multi-select' ? '[]' : ''}"]`;
-                    const element = $(selector);
-                    if (!element.length) return;
-
-                    if (field.type === 'multi-select') {
-                        const values = Array.isArray(item[field.name]) ? item[field.name] : (item[field.name] ? [item[field.name]] : []);
-                        element.val(values.map(String));
-                    } else {
-                        element.val(item[field.name] ?? '');
-                    }
+                    const selector = `[name="${field.name}"]`;
+                    if ($(selector).length) { $(selector).val(item[field.name] ?? ''); }
                 });
             }
-
-            if (moduleName === 'taskStatusLogs') {
-                const taskField = $('[name="task_id"]');
-                if (taskField.length) {
-                    const wrapper = taskField.closest('.field');
-                    const taskId = item.task_id ?? '';
-                    const taskLabel = lookupLabel('tasks', taskId);
-                    wrapper.html(`
-                        <label for="field_taskStatusLogs_task_id">Task *</label>
-                        <input type="hidden" name="task_id" value="${escapeHtml(taskId)}">
-                        <input id="field_taskStatusLogs_task_id" class="control" type="text" value="${escapeHtml(taskLabel)}" readonly>
-                        <small class="field-help">This log stays linked to its original task.</small>
-                    `);
-                }
-            }
-
             openEditorDrawer(moduleName, 'edit');
-            setNotice(`Editing ${modules[moduleName].title.toLowerCase()} record #${getRowId(item, moduleName)}.`, 'info');
         }
 
         async function submitModule(moduleName) {
@@ -1736,51 +1586,43 @@
             const isEdit = !!payload.id;
 
             if (moduleName === 'tasks' && !canManageTasks()) {
-                setNotice('Unauthorized Action: Only User ID 1 and 2 may update tasks.', 'error');
+                setNotice('Unauthorized Action: Only authorized roles may update tasks.', 'error');
                 return;
             }
-
             if (moduleName === 'taskStatusLogs' && !isEdit) {
                 setNotice('Select a log entry from the list first.', 'error');
                 return;
             }
-            const endpoint = isEdit ? cfg.update : cfg.create;
 
+            const endpoint = isEdit ? cfg.update : cfg.create;
             try {
                 setLoader(true);
                 let response;
                 const fileInput = form.querySelector('input[type="file"][name="image_file"]');
                 if (fileInput && fileInput.files && fileInput.files.length) {
                     const fd = new FormData();
-                    for (const pair of formData.entries()) {
-                        fd.append(pair[0], pair[1]);
-                    }
-
-                    response = await (async () => {
-                        try {
-                            return await $.ajax({
-                                type: 'POST',
-                                url: `${API_BASE}/${endpoint}`,
-                                data: fd,
-                                processData: false,
-                                contentType: false,
-                                headers: apiHeaders()
-                            });
-                        } catch (xhr) {
-                            throw new Error(extractError(xhr.responseJSON || {}));
-                        }
-                    })();
+                    for (const pair of formData.entries()) { fd.append(pair[0], pair[pair.length - 1]); }
+                    
+                    response = await $.ajax({
+                        type: 'POST',
+                        url: `${API_BASE}/${endpoint}`,
+                        data: fd,
+                        processData: false,
+                        contentType: false,
+                        headers: apiHeaders()
+                    });
                 } else {
                     response = await apiRequest(endpoint, payload);
-                    if (response.status !== 200) {
-                        throw new Error(extractError(response));
-                    }
                 }
 
-                setNotice('Record saved successfully.', 'success');
+                setNotice(response.message || 'Record saved successfully.', 'success');
                 clearForm(moduleName);
-                await refreshLookupsIfNeeded(moduleName);
-                await loadModule(moduleName, state.pages[moduleName] || 1);
+                
+                // FIXED LOOKUP FORCE FLUSH: Clears global maps so refreshed responses rebuild assigned names correctly
+                state.lookups.users = null;
+                state.lookups.tasks = null;
+
+                loadModule(moduleName, state.pages[moduleName] || 1);
             } catch (error) {
                 setNotice(error.message, 'error');
             } finally {
@@ -1789,24 +1631,22 @@
         }
 
         async function deleteRecord(moduleName, id) {
-            const cfg = modules[moduleName];
-
             if (moduleName === 'tasks' && !canManageTasks()) {
-                setNotice('Unauthorized Action: Destructive task mutations are restricted.', 'error');
+                setNotice('Unauthorized: Only Admin or Manager roles can delete tasks.', 'error');
                 return;
             }
+            if (!confirm('Are you sure you want to permanently delete this record?')) return;
 
-            if (!confirm(`Delete this ${cfg.title.slice(0, -1).toLowerCase()} record?`)) return;
-
+            const cfg = modules[moduleName];
+            setLoader(true);
             try {
-                setLoader(true);
-                const response = await apiRequest(cfg.destroy, { id });
-                if (response.status !== 200) {
-                    throw new Error(extractError(response));
-                }
-                setNotice('Record deleted successfully.', 'success');
-                clearForm(moduleName);
-                await loadModule(moduleName, state.pages[moduleName] || 1);
+                const response = await apiRequest(cfg.destroy, { id: id });
+                setNotice(response.message || 'Record deleted successfully.', 'success');
+                
+                state.lookups.users = null;
+                state.lookups.tasks = null;
+                
+                loadModule(moduleName, 1);
             } catch (error) {
                 setNotice(error.message, 'error');
             } finally {
@@ -1814,32 +1654,24 @@
             }
         }
 
-        async function refreshLookupsIfNeeded(moduleName) {
-            await ensureModuleLookups(moduleName);
-        }
-
-        function activateModule(moduleName) {
-            state.activeModule = moduleName;
-            $('#sidebarNav button').removeClass('active');
-            $(`#sidebarNav button[data-module="${moduleName}"]`).addClass('active');
-
-            if (moduleName === 'overview') {
-                renderOverview();
-                void loadOverviewCounts();
-                return;
-            }
-            void renderModule(moduleName);
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
         }
 
         function bindEvents() {
             $('#sidebarNav').on('click', 'button[data-module]', function () {
-                activateModule($(this).data('module'));
+                const mod = $(this).data('module');
+                loadModule(mod, 1);
             });
 
             $('#logoutButton').on('click', async function () {
                 try {
                     setLoader(true);
-                    await apiRequest('logout', {});
+                    await apiRequest('logout');
                 } catch (error) {
                     // fallthrough fallback clearance handler
                 } finally {

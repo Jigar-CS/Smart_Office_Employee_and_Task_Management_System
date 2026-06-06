@@ -160,10 +160,9 @@ class TaskModelController extends Controller
         $count = $tasksQuery->count();
         $tasks = $tasksQuery->skip($offset)->take($limit)->get();
 
-        // --- NEW FIX: Fetch and map assigned user names for all rows ---
+        // --- Fetch and map assigned user names for all rows ---
         $allTaskIds = $tasks->pluck('task_id')->all();
         if (!empty($allTaskIds)) {
-            // Get all active assignments combined with user information for the loaded tasks
             $allAssignments = TaskAssignmentModel::leftJoin('tbl_users as u', 'tbl_task_assignments.user_id', '=', 'u.user_id')
                 ->whereIn('tbl_task_assignments.task_id', $allTaskIds)
                 ->where('tbl_task_assignments.status', 1)
@@ -174,7 +173,6 @@ class TaskModelController extends Controller
             foreach ($tasks as $t) {
                 $taskAssignments = $allAssignments->get($t->task_id);
                 if ($taskAssignments) {
-                    // Extract names and combine them into a comma-separated list
                     $namesArray = $taskAssignments->pluck('name')->filter()->all();
                     $t->assigned_users = implode(', ', $namesArray);
                 } else {
@@ -182,7 +180,6 @@ class TaskModelController extends Controller
                 }
             }
         }
-        // --- END OF FIX ---
 
         if (! $this->canViewAllTasks($authUser)) {
             $taskIds = $tasks->pluck('task_id')->all();
@@ -307,6 +304,8 @@ class TaskModelController extends Controller
             'priority_id' => 'nullable|integer|exists:tbl_priorities,priority_id',
             'task_status_id' => 'nullable|integer|exists:tbl_task_status,task_status_id',
             'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
+            'assigned_user_ids' => 'nullable|array',
+            'assigned_user_ids.*' => 'integer|exists:tbl_users,user_id',
         ]);
 
         if ($valid->fails()) {
@@ -344,21 +343,61 @@ class TaskModelController extends Controller
                 }
             }
 
-            if ($isManager) {
-                if ($request->has('title')) $task->title = $request->input('title');
-                if ($request->has('description')) $task->description = $request->input('description');
-                if ($request->has('start_date')) $task->start_date = $request->input('start_date');
-                if ($request->has('due_date')) $task->due_date = $request->input('due_date');
-                if ($request->has('priority_id')) $task->priority_id = $request->input('priority_id');
-                if ($request->has('department_id')) $task->department_id = $request->input('department_id');
-                if ($request->has('status')) $task->status = $request->input('status');
-            }
+            // Perform task mapping and assignment updates within a database transaction
+            DB::transaction(function () use ($request, $task, $isManager, $authUser) {
+                if ($isManager) {
+                    if ($request->has('title')) $task->title = $request->input('title');
+                    if ($request->has('description')) $task->description = $request->input('description');
+                    if ($request->has('start_date')) $task->start_date = $request->input('start_date');
+                    if ($request->has('due_date')) $task->due_date = $request->input('due_date');
+                    if ($request->has('priority_id')) $task->priority_id = $request->input('priority_id');
+                    if ($request->has('department_id')) $task->department_id = $request->input('department_id');
+                    if ($request->has('status')) $task->status = $request->input('status');
 
-            if ($request->has('task_status_id')) {
-                $task->task_status_id = $request->input('task_status_id');
-            }
+                    // FIX: Sync assigned users if provided during update
+                    if ($request->has('assigned_user_ids')) {
+                        $assignedIds = $request->input('assigned_user_ids') ?? [];
+                        
+                        // Disable previous assignments for this task
+                        TaskAssignmentModel::where('task_id', $task->task_id)
+                            ->where('status', 1)
+                            ->update([
+                                'status' => 0,
+                                'updated_by' => $authUser->user_id,
+                                'updated_at' => now()
+                            ]);
 
-            $task->save();
+                        // Add new/updated active assignments
+                        foreach ($assignedIds as $uid) {
+                            $assignment = new TaskAssignmentModel();
+                            $assignment->task_id = $task->task_id;
+                            $assignment->task_priority = $task->priority_id;
+                            $assignment->user_id = $uid;
+                            $assignment->assigned_by = $authUser->user_id;
+                            $assignment->assigned_at = now();
+                            $assignment->status = 1;
+                            $assignment->save();
+                        }
+
+                        // Create status change log for tracking assignment update modifications
+                        $log = new TaskStatusLogModel();
+                        $log->task_id = $task->task_id;
+                        $log->from_status_id = (int) $task->task_status_id;
+                        $log->to_status_id = (int) ($request->input('task_status_id') ?? $task->task_status_id);
+                        $log->changed_by = $authUser->user_id;
+                        $log->remarks = 'Assignments updated to: ' . implode(',', $assignedIds);
+                        $log->department_id = $task->department_id;
+                        $log->status = 1;
+                        $log->save();
+                    }
+                }
+
+                if ($request->has('task_status_id')) {
+                    $task->task_status_id = $request->input('task_status_id');
+                }
+
+                $task->save();
+            });
 
             return response()->json(['status' => 200, 'data' => $task], 200);
         } catch (\Exception $e) {
