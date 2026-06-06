@@ -115,20 +115,23 @@ class UserController extends Controller
         ];
 
         return response()->json(['status' => 200, 'count' => $count, 'data' => $users, 'meta' => $meta], 200);
-
-        return response()->json(['status' => 200, 'count' => $count, 'data' => $users], 200);
     }
 
     public function adduser(Request $request)
     {
         $caller = $request->user();
-        if (! $this->isAdminUser($caller)) {
-            return response()->json(['status' => 403, 'error' => 'Action requires admin token.'], 403);
+        if (! $caller) {
+            return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
         }
+
+        // Rule constraint: Only users with user_id 1 or 2 can create users
+        if ($caller->user_id !== 1 && $caller->user_id !== 2) {
+            return response()->json(['status' => 403, 'error' => 'Action unauthorized: Only user ID 1 or 2 can create accounts.'], 403);
+        }
+
         $valid = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:tbl_users,email',
-            // relax complexity for admin-created accounts (min length enforced)
             'password' => ['required', 'string', Password::min(5)],
             'role_id' => 'required|integer|exists:tbl_roles,role_id',
             'department_id' => 'required|integer|exists:tbl_departments,department_id',
@@ -184,16 +187,30 @@ class UserController extends Controller
 
     public function updateuser(Request $request)
     {
+        $caller = $request->user();
+        if (! $caller) {
+            return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
+        }
+
+        $targetUserId = (int) $request->input('id');
+
+        // Rule constraint: Allowed if caller is user ID 1 or 2, OR if caller is user ID 3 modifying their own account.
+        $isAuthorized = ($caller->user_id === 1 || $caller->user_id === 2 || ($caller->user_id === 3 && $caller->user_id === $targetUserId));
+
+        if (! $isAuthorized) {
+            return response()->json(['status' => 403, 'error' => 'Action unauthorized: Cannot update details for this user.'], 403);
+        }
+
         $valid = Validator::make($request->all(), [
             'id' => 'required|integer|exists:tbl_users,user_id',
             'name' => 'nullable|string|max:255',
-            'email' => [ 'nullable', 'email', 'max:255', Rule::unique('tbl_users', 'email')->ignore($request->input('id'), 'user_id') ],
+            'email' => [ 'nullable', 'email', 'max:255', Rule::unique('tbl_users', 'email')->ignore($targetUserId, 'user_id') ],
             'password' => ['nullable', 'string', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role_id' => 'nullable|integer|exists:tbl_roles,role_id',
             'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
             'mobile' => 'nullable|string|max:255',
-              'image' => 'nullable|string|max:255',
-              'image_file' => 'nullable|image|max:2048',
+            'image' => 'nullable|string|max:255',
+            'image_file' => 'nullable|image|max:2048',
         ], [
             'id.required' => 'User id is required.',
             'id.integer' => 'User id must be an integer.',
@@ -221,8 +238,7 @@ class UserController extends Controller
         }
 
         try {
-            $user = User::find($request->input('id'));
-            $caller = $request->user();
+            $user = User::find($targetUserId);
             $user->old_vallue = $user->toArray();
             if ($request->has('name')) {
                 $user->name = $request->input('name');
@@ -250,7 +266,7 @@ class UserController extends Controller
             if ($request->has('status')) {
                 $user->status = $request->input('status');
             }
-            $user->updated_by = $caller?->user_id;
+            $user->updated_by = $caller->user_id;
             $user->updated_at = now();
             $user->save();
 

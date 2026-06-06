@@ -353,7 +353,6 @@
             text-align: center;
         }
 
-        /* FIXED: Force pencil and bin icons to align perfectly side by side */
         .row-actions {
             display: inline-flex !important;
             flex-direction: row !important;
@@ -781,7 +780,7 @@
             },
             taskStatuses: {
                 title: 'Task Statuses',  endpoint: 'taskstatus', list: 'getalltaskstatus', create: 'addtaskstatus', update: 'updatetaskstatus', destroy: 'deletetaskstatus', pageSize: 5,
-                searchable: false,
+                searchable: true,
                 fields: [
                     { name: 'title', label: 'Title', type: 'text', required: true },
                     { name: 'description', label: 'Description', type: 'textarea' }
@@ -849,7 +848,7 @@
             },
             taskStatusLogs: {
                 title: 'Task Status Logs', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
-                searchable: false,
+                searchable: true,
                 fields: [
                     { name: 'task_id', label: 'Task', type: 'select', lookup: 'tasks', required: true, lockOnEdit: true },
                     { name: 'assigned_by', label: 'Assigned By', type: 'select', lookup: 'users' },
@@ -1565,25 +1564,7 @@
             const cfg = modules[moduleName];
             const form = $('#moduleForm')[0];
             const formData = new FormData(form);
-            const payload = {};
-
-            for (const [key, value] of formData.entries()) {
-                if (key.endsWith('[]')) {
-                    const baseKey = key.slice(0, -2);
-                    payload[baseKey] = payload[baseKey] || [];
-                    payload[baseKey].push(value);
-                } else if (payload[key] !== undefined) {
-                    if (!Array.isArray(payload[key])) payload[key] = [payload[key]];
-                    payload[key].push(value);
-                } else {
-                    payload[key] = value;
-                }
-            }
-
-            if (payload.password === '') delete payload.password;
-            if (payload.file_size === '') delete payload.file_size;
-
-            const isEdit = !!payload.id;
+            const isEdit = !!$('#recordId').val();
 
             if (moduleName === 'tasks' && !canManageTasks()) {
                 setNotice('Unauthorized Action: Only authorized roles may update tasks.', 'error');
@@ -1598,27 +1579,59 @@
             try {
                 setLoader(true);
                 let response;
-                const fileInput = form.querySelector('input[type="file"][name="image_file"]');
-                if (fileInput && fileInput.files && fileInput.files.length) {
-                    const fd = new FormData();
-                    for (const pair of formData.entries()) { fd.append(pair[0], pair[pair.length - 1]); }
+
+                // If module is 'users', always route using full FormData payload to support file/direct bindings
+                if (moduleName === 'users') {
+                    // Check password handling for user update operations
+                    if (isEdit && !formData.get('password')) {
+                        formData.delete('password');
+                    }
                     
                     response = await $.ajax({
                         type: 'POST',
                         url: `${API_BASE}/${endpoint}`,
-                        data: fd,
+                        data: formData,
                         processData: false,
                         contentType: false,
                         headers: apiHeaders()
                     });
                 } else {
-                    response = await apiRequest(endpoint, payload);
+                    // Handle all other modules exactly as before
+                    const payload = {};
+                    for (const [key, value] of formData.entries()) {
+                        if (key.endsWith('[]')) {
+                            const baseKey = key.slice(0, -2);
+                            payload[baseKey] = payload[baseKey] || [];
+                            payload[baseKey].push(value);
+                        } else if (payload[key] !== undefined) {
+                            if (!Array.isArray(payload[key])) payload[key] = [payload[key]];
+                            payload[key].push(value);
+                        } else {
+                            payload[key] = value;
+                        }
+                    }
+
+                    if (payload.password === '') delete payload.password;
+                    if (payload.file_size === '') delete payload.file_size;
+
+                    const fileInput = form.querySelector('input[type="file"]');
+                    if (fileInput && fileInput.files && fileInput.files.length) {
+                        response = await $.ajax({
+                            type: 'POST',
+                            url: `${API_BASE}/${endpoint}`,
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            headers: apiHeaders()
+                        });
+                    } else {
+                        response = await apiRequest(endpoint, payload);
+                    }
                 }
 
                 setNotice(response.message || 'Record saved successfully.', 'success');
                 clearForm(moduleName);
                 
-                // FIXED LOOKUP FORCE FLUSH: Clears global maps so refreshed responses rebuild assigned names correctly
                 state.lookups.users = null;
                 state.lookups.tasks = null;
 

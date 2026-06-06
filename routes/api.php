@@ -56,7 +56,7 @@ Route::middleware(['auth:sanctum', 'admin.token'])->group(function () {
 	Route::post('getalldocument', [DocumentModelController::class, 'getalldocument']);
 	Route::post('getdocument', [DocumentModelController::class, 'getdocument']);
 	Route::post('getuser', [UserController::class, 'getuser']);
-	Route::post('createuser', [UserController::class, 'adduser'])->middleware('admin.token');
+	Route::post('adduser', [UserController::class, 'adduser'])->middleware('admin.token');
 	Route::post('updateuser', [UserController::class, 'updateuser']);
 	Route::post('deleteuser', [UserController::class, 'deleteuser']);
 
