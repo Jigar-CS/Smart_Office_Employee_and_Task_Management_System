@@ -193,25 +193,6 @@
             opacity: 0.75;
         }
 
-        .message {
-            min-height: 20px;
-            margin-top: 16px;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .message.error {
-            font-weight: 1000;
-            font-size: 14px;
-            color: #ff0101;
-        }
-
-        .message.success {
-            font-weight: 1000;
-            font-size: 14px;
-            color: #16a34a;
-        }
-
         .hoot-loader {
             position: fixed;
             inset: 0;
@@ -246,6 +227,80 @@
             line-height: 1.6;
         }
 
+        /* --- Custom Notification Container & Layout Styles --- */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .custom-toast {
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+            opacity: 0;
+        }
+
+        /* Error Specific Theme */
+        .custom-toast.toast-error {
+            background: #e11d48; /* Premium Rose Crimson Red */
+        }
+
+        /* Success Specific Theme */
+        .custom-toast.toast-success {
+            background: #10b981; /* Premium Emerald Green */
+        }
+
+        .custom-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .custom-toast .toast-icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .custom-toast .toast-content {
+            flex-grow: 1;
+        }
+
+        .custom-toast .toast-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .custom-toast .toast-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            line-height: 1;
+            width: auto;
+            height: auto;
+            box-shadow: none;
+        }
+
+        .custom-toast .toast-close:hover {
+            color: #ffffff;
+        }
+
         @media (max-width: 480px) {
             .card {
                 padding: 28px 20px;
@@ -265,10 +320,19 @@
             h1 {
                 font-size: 38px;
             }
+
+            .toast-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <div id="hoot-loader" class="hoot-loader" aria-hidden="true">
         <div class="hoot-loader__spinner" aria-label="Loading"></div>
     </div>
@@ -301,15 +365,10 @@
                     </div>
                 </div>
 
-
                 <div class="actions">
                     <button id="submitButton" type="submit">Sign In</button>
                 </div>
-
-                <div id="message" class="message" aria-live="polite"></div>
             </form>
-
-            
         </section>
     </main>
 
@@ -329,6 +388,45 @@
             });
         });
 
+        // Reusable Notification Trigger Engine
+        function showNotification(type, title, message) {
+            var toastId = 'toast-' + Date.now();
+            var iconSvg = type === 'success' 
+                ? `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
+                : `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+            var toastHtml = `
+                <div id="${toastId}" class="custom-toast toast-${type}">
+                    <div class="toast-icon">${iconSvg}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div>${message}</div>
+                    </div>
+                    <button class="toast-close" onclick="closeToast('${toastId}')">&times;</button>
+                </div>
+            `;
+
+            $('#toastContainer').append(toastHtml);
+            setTimeout(function() {
+                $(`#${toastId}`).addClass('show');
+            }, 50);
+
+            // Auto-remove notification after 5 seconds
+            setTimeout(function() {
+                closeToast(toastId);
+            }, 5000);
+        }
+
+        function closeToast(id) {
+            var $toast = $(`#${id}`);
+            if ($toast.length) {
+                $toast.removeClass('show');
+                setTimeout(function() {
+                    $toast.remove();
+                }, 400);
+            }
+        }
+
         function userlogin() {
             $('#hoot-loader').css('display', 'flex');
 
@@ -337,7 +435,6 @@
                 password: $('#password').val()
             };
 
-            $('#message').removeClass('error success').text('');
             $('#submitButton').prop('disabled', true).text('Signing In...');
 
             $.ajax({
@@ -358,7 +455,8 @@
                             localStorage.setItem('smart-office-user', JSON.stringify(user));
                         }
 
-                        $('#message').removeClass('error').addClass('success').text('Login successful.');
+                        // Success notification instead of inside login-box label
+                        showNotification('success', 'Success', 'Login successful. Redirecting...');
                         $('#loginForm')[0].reset();
 
                         setTimeout(function () {
@@ -366,14 +464,16 @@
                             var roleName = String(user && user.role_name ? user.role_name : '').toLowerCase().trim();
                             var isAdminSide = roleId === 1 || roleId === 2 || roleName.indexOf('admin') !== -1 || roleName.indexOf('manager') !== -1;
                             window.location.href = isAdminSide ? '/dashboard' : '/user-dashboard';
-                        }, 600);
+                        }, 800);
                     } else {
-                        $('#message').removeClass('success').addClass('error').text(extractError(result));
+                        var errorMsg = extractError(result);
+                        showNotification('error', 'Login Error', errorMsg);
                     }
                 },
                 error: function (xhr) {
                     var response = xhr.responseJSON || {};
-                    $('#message').removeClass('success').addClass('error').text(extractError(response));
+                    var errorMsg = extractError(response);
+                    showNotification('error', 'Login Error', errorMsg);
                 },
                 complete: function () {
                     $('#hoot-loader').hide();
@@ -413,6 +513,3 @@
     </script>
 </body>
 </html>
-
-
-    

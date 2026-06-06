@@ -43,8 +43,6 @@
             overflow: hidden;
         }
 
-        /* No decorative overlays for minimal professional look */
-
         button, input, select, textarea { font: inherit; }
 
         .shell {
@@ -205,8 +203,6 @@
             font-size: 12px;
         }
 
-        /* build-badge removed */
-
         .grid {
             display: grid;
             gap: 18px;
@@ -216,7 +212,6 @@
             grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
-        /* Strong, forced card styles to ensure visibility */
         .stat {
             padding: 18px !important;
             border: 1px solid rgba(11,37,64,0.08) !important;
@@ -231,16 +226,6 @@
         .stat .label { color: var(--muted); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
         .stat .value { margin-top: 8px; font-size: 30px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; }
         .stat .hint { margin-top: 6px; color: var(--muted); font-size: 13px; }
-
-        .notice {
-            min-height: 22px;
-            margin: 10px 0 0;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .notice.success { color: var(--success); }
-        .notice.error { color: #ff8787; }
 
         .panel {
             padding: 22px;
@@ -338,7 +323,7 @@
             transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
-.btn-primary { color: var(--text); background: #fff; border: 1px solid var(--line); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
+        .btn-primary { color: var(--text); background: #fff; border: 1px solid var(--line); box-shadow: 0 8px 22px rgba(43,125,233,0.08); }
         .btn-primary:active { transform: translateY(0); }
         .btn-secondary { color: var(--text); background: #fff; border: 1px solid var(--line); }
         .btn-danger { color: #fff; background: var(--danger); }
@@ -374,7 +359,7 @@
             flex-wrap: wrap;
         }
 
-.mini {
+        .mini {
             padding: 8px 10px;
             border-radius: 8px;
             border: 1px solid var(--line);
@@ -433,12 +418,9 @@
         }
 
         .pagination .meta { color: var(--muted); font-size: 13px; }
-
         .pagination .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 
-        .editor-layout {
-            display: block;
-        }
+        .editor-layout { display: block; }
 
         .editor-drawer {
             display: none;
@@ -500,13 +482,8 @@
             margin-bottom: 16px;
         }
 
-        .editor-drawer .field {
-            align-content: start;
-        }
-
-        .editor-drawer .field label {
-            margin-bottom: 0;
-        }
+        .editor-drawer .field { align-content: start; }
+        .editor-drawer .field label { margin-bottom: 0; }
 
         .editor-drawer .control,
         .editor-drawer .select,
@@ -516,26 +493,11 @@
             line-height: 1.3;
         }
 
-        .editor-drawer .select {
-            padding-right: 40px;
-        }
-
-        .editor-drawer .textarea {
-            min-height: 128px;
-        }
-
-        .editor-drawer .field-help {
-            margin-top: 0;
-        }
-
-        .editor-drawer .actions {
-            margin-top: 10px;
-        }
-
-        .editor-drawer .btn {
-            min-height: 48px;
-            padding: 12px 18px;
-        }
+        .editor-drawer .select { padding-right: 40px; }
+        .editor-drawer .textarea { min-height: 128px; }
+        .editor-drawer .field-help { margin-top: 0; }
+        .editor-drawer .actions { margin-top: 10px; }
+        .editor-drawer .btn { min-height: 48px; padding: 12px 18px; }
 
         .loader {
             position: fixed;
@@ -577,6 +539,88 @@
 
         .overview-card p { margin: 8px 0 0; color: var(--muted); line-height: 1.6; }
 
+        /* --- Premium Top-Right Notification System Styles --- */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 380px;
+            width: calc(100vw - 48px);
+        }
+
+        .custom-toast {
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(11,37,64,0.22);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+            opacity: 0;
+        }
+
+        .custom-toast.toast-error {
+            background: var(--danger);
+        }
+
+        .custom-toast.toast-success {
+            background: var(--success);
+        }
+
+        .custom-toast.toast-info {
+            background: var(--brand);
+        }
+
+        .custom-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .custom-toast .toast-icon {
+            flex-shrink: 0;
+            margin-top: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-toast .toast-content {
+            flex-grow: 1;
+        }
+
+        .custom-toast .toast-title {
+            font-weight: 700;
+            margin-bottom: 2px;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        .custom-toast .toast-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            line-height: 1;
+            width: auto;
+            height: auto;
+            box-shadow: none;
+            transition: color 0.15s ease;
+        }
+
+        .custom-toast .toast-close:hover {
+            color: #ffffff;
+        }
+
         @media (max-width: 1120px) {
             .shell { grid-template-columns: 1fr; }
             .sidebar {
@@ -594,6 +638,7 @@
             .search { min-width: 0; width: 100%; }
             .editor-drawer { right: 18px; left: 18px; width: auto; top: 18px; max-height: calc(100vh - 36px); }
             .editor-drawer .form-grid { grid-template-columns: 1fr; }
+            .toast-container { top: 16px; right: 16px; left: 16px; width: auto; }
         }
 
         @media (max-width: 560px) {
@@ -604,6 +649,8 @@
     </style>
 </head>
 <body>
+    <div id="toastContainer" class="toast-container"></div>
+
     <div id="hoot-loader" class="loader" aria-hidden="true"><div class="spinner" aria-label="Loading"></div></div>
 
     <div class="shell">
@@ -612,7 +659,6 @@
                 <img src="{{ asset('New_logo.png') }}" alt="Smart Office">
                 <div>
                     <strong>Smart Office</strong>
-                   
                 </div>
             </div>
 
@@ -631,12 +677,9 @@
             <header class="topbar">
                 <div class="hero">
                     <h1 id="pageTitle">Dashboard</h1>
-                   
                 </div>
                 <div id="sessionPill" class="pill">Session ready</div>
             </header>
-
-            <section id="notice" class="notice" aria-live="polite"></section>
 
             <section id="moduleRoot"></section>
         </main>
@@ -679,11 +722,16 @@
             return roleId === 1 || roleId === 2 || roleName.includes('admin');
         }
 
+        // FIXED LOGIC: Checks user_id directly instead of role_id
+        function canManageTasks() {
+            const userId = Number(state.user?.user_id || 0);
+            return userId === 1 || userId === 2;
+        }
+
         function getVisibleModuleOrder() {
             if (isSuperAdmin()) {
                 return moduleOrder;
             }
-
             return ['overview', 'tasks', 'taskStatusLogs', 'documents'];
         }
 
@@ -698,7 +746,6 @@
             overview: { title: 'Dashboard', subtitle: 'System overview and quick entry points.' },
             departments: {
                 title: 'Departments', endpoint: 'department', list: 'getalldepartment', create: 'adddepartment', update: 'updatedepartment', destroy: 'deletedepartment', pageSize: 10,
-
                 fields: [
                     { name: 'name', label: 'Name', type: 'text', required: true },
                     { name: 'description', label: 'Description', type: 'textarea' }
@@ -709,7 +756,6 @@
                     { key: 'description', label: 'Description', fallback: '-' }
                 ]
             },
-            
             roles: {
                 title: 'Roles', endpoint: 'role', list: 'getallrole', create: 'addrole', update: 'updaterole', destroy: 'deleterole', pageSize: 5,
                 searchable: false,
@@ -784,14 +830,16 @@
                     { name: 'assigned_user_ids', label: 'Assigned Users', type: 'multi-select', createOnly: true, required: true }
                 ],
                 columns: [
-                    { key: 'task_id', label: 'ID' },
-                    { key: 'title', label: 'Title' },
-                    { key: 'start_date', label: 'Start', render: row => formatDate(row.start_date) },
-                    { key: 'due_date', label: 'Due', render: row => formatDate(row.due_date) },
-                    { key: 'priority_id', label: 'Priority', lookup: 'priorities' },
-                    { key: 'task_status_id', label: 'Status', lookup: 'taskStatuses' },
-                    { key: 'department_id', label: 'Department', lookup: 'departments' }
-                ]
+    { key: 'task_id', label: 'ID' },
+    { key: 'title', label: 'Title' },
+    { key: 'start_date', label: 'Start', render: row => formatDate(row.start_date) },
+    { key: 'due_date', label: 'Due', render: row => formatDate(row.due_date) },
+    { key: 'priority_id', label: 'Priority', lookup: 'priorities' },
+    { key: 'task_status_id', label: 'Status', lookup: 'taskStatuses' },
+    { key: 'department_id', label: 'Department', lookup: 'departments' },
+    // Changed key from 'assigned_user_ids' to 'assigned_users' to read the names from the backend fix
+    { key: 'assigned_users', label: 'Assigned Users', render: row => row.assigned_users || '-' }
+]
             },
             taskStatusLogs: {
                 title: 'Task Status Logs', endpoint: 'taskstatuslog', list: 'getalltaskstatuslog', create: null, update: 'updatetaskstatuslog', destroy: 'deletetaskstatuslog', pageSize: 5,
@@ -864,7 +912,49 @@
         }
 
         function setNotice(text, type = '') {
-            $('#notice').removeClass('success error').addClass(type).text(text || '');
+            if (!text) return;
+            
+            if (type !== 'success' && type !== 'error') {
+                return; 
+            }
+            
+            let toastType = type;
+            let title = type === 'success' ? 'Operation Successful' : 'Operation Failed';
+
+            var toastId = 'toast-' + Date.now();
+            var iconSvg = type === 'success' 
+                ? `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
+                : `<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+            var toastHtml = `
+                <div id="${toastId}" class="custom-toast toast-${toastType}">
+                    <div class="toast-icon">${iconSvg}</div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div>${escapeHtml(text)}</div>
+                    </div>
+                    <button class="toast-close" onclick="closeToast('${toastId}')">&times;</button>
+                </div>
+            `;
+
+            $('#toastContainer').append(toastHtml);
+            setTimeout(function() {
+                $(`#${toastId}`).addClass('show');
+            }, 50);
+
+            setTimeout(function() {
+                closeToast(toastId);
+            }, 4500);
+        }
+
+        function closeToast(id) {
+            var $toast = $(`#${id}`);
+            if ($toast.length) {
+                $toast.removeClass('show');
+                setTimeout(function() {
+                    $toast.remove();
+                }, 400);
+            }
         }
 
         function setLoader(show) {
@@ -960,15 +1050,10 @@
             }
         }
 
-        function getVisibleModuleConfig() {
-            const visibleOrder = getVisibleModuleOrder();
-            return visibleOrder.map((key) => ({ key, cfg: modules[key] })).filter(item => !!item.cfg);
-        }
-
         function renderSidebar() {
             const navHtml = getVisibleModuleConfig().map(({ key, cfg }) => {
                 const label = key === 'overview' ? 'Overview' : cfg.title;
-                return `<button type="button" class="${key === state.activeModule ? 'active' : ''}" data-module="${key}"><span>${escapeHtml(label)}</span><small>${key === 'overview' ? ' ' : ' '}</small></button>`;
+                return `<button type="button" class="${key === state.activeModule ? 'active' : ''}" data-module="${key}"><span>${escapeHtml(label)}</span><small></small></button>`;
             }).join('');
 
             if (!getVisibleModuleOrder().includes(state.activeModule)) {
@@ -1004,12 +1089,10 @@
                         </div>
                     `).join('')}
                 </section>
-
             `;
 
             $('#moduleRoot').html(html);
             $('#pageTitle').text('Dashboard');
-          
         }
 
         function getDrawerText(moduleName, mode) {
@@ -1017,16 +1100,9 @@
             const title = cfg ? cfg.title : 'Record';
 
             if (mode === 'create') {
-                return {
-                    title: `Create ${title}`,
-                    //note: 'Fill out the fields in the side panel, then save the new record.'
-                };
+                return { title: `Create ${title}` };
             }
-
-            return {
-                title: `Editing ${title}`,
-               // note: 'Update the selected record in the side panel, then save the changes.'
-            };
+            return { title: `Editing ${title}` };
         }
 
         function syncEditorBackdrop(isOpen) {
@@ -1039,7 +1115,7 @@
             state.drawerMode = mode;
             const drawerText = getDrawerText(moduleName, mode);
             $('#moduleDrawerTitle').text(drawerText.title);
-            $('#moduleDrawerNote').text(drawerText.note);
+            $('#moduleDrawerNote').text(drawerText.note || '');
             $('#moduleDrawer').addClass('open');
             $('#moduleDrawerEmpty').hide();
             syncEditorBackdrop(true);
@@ -1054,6 +1130,11 @@
         }
 
         function prepareNewRecord(moduleName) {
+            if (moduleName === 'tasks' && !canManageTasks()) {
+                setNotice('Unauthorized: Only Admin (ID: 1) or Manager (ID: 2) can assign tasks.', 'error');
+                return;
+            }
+
             state.records[moduleName] = state.records[moduleName] || {};
             state.records[moduleName].editing = null;
             state.editingId[moduleName] = null;
@@ -1069,14 +1150,14 @@
             }
 
             openEditorDrawer(moduleName, 'create');
-            setNotice(`Creating a new ${modules[moduleName].title.toLowerCase()} record.`, '');
+            setNotice(`Creating a new ${modules[moduleName].title.toLowerCase()} record.`, 'info');
         }
 
         async function renderModule(moduleName) {
             const cfg = modules[moduleName];
             await ensureModuleLookups(moduleName);
-            const canSearch = true;
-            const canCreate = !!cfg.create;
+            
+            const canCreate = (moduleName === 'tasks') ? canManageTasks() : !!cfg.create;
             const searchHtml = `<input id="moduleSearch" class="search" type="search" placeholder="Search ${escapeHtml(cfg.title.toLowerCase())}..." value="${escapeHtml(state.search[moduleName] || '')}">`;
 
             const formFields = cfg.fields.map(field => renderField(moduleName, field)).join('');
@@ -1092,8 +1173,8 @@
                         </div>
                         <div class="toolbar">
                             ${searchHtml}
-${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria-label="New" title="New"><span style="font-size:18px; line-height:1;">+</span></button>' : ''}
-<button id="refreshButton" type="button" class="btn btn-secondary" aria-label="Refresh" title="Refresh"><span style="font-size:16px; line-height:1;">⟳</span></button>
+                            ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria-label="New" title="New"><span style="font-size:18px; line-height:1;">+</span></button>' : ''}
+                            <button id="refreshButton" type="button" class="btn btn-secondary" aria-label="Refresh" title="Refresh"><span style="font-size:16px; line-height:1;">⟳</span></button>
                         </div>
                     </div>
 
@@ -1114,7 +1195,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                     <div class="editor-drawer-header">
                         <div>
                             <h3 id="moduleDrawerTitle" class="editor-drawer-title">${escapeHtml(drawerText.title)}</h3>
-                            <p id="moduleDrawerNote" class="editor-drawer-note">${escapeHtml(drawerText.note)}</p>
+                            <p id="moduleDrawerNote" class="editor-drawer-note">${escapeHtml(drawerText.note || '')}</p>
                         </div>
                         <button type="button" id="closeModuleDrawer" class="btn btn-secondary">Close</button>
                     </div>
@@ -1136,7 +1217,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
 
             $('#moduleRoot').html(html);
             $('#pageTitle').text(cfg.title);
-            $('#pageSubtitle').text(cfg.subtitle || '');
 
             $('#moduleForm').on('submit', function (event) {
                 event.preventDefault();
@@ -1171,7 +1251,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 state.searchTimer = setTimeout(() => loadModule(moduleName, 1), 250);
             });
 
-
             if (moduleName === 'tasks') {
                 $('#field_tasks_department_id').off('change.taskAssignees').on('change.taskAssignees', function () {
                     const departmentId = $(this).val();
@@ -1187,7 +1266,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 });
             }
 
-            // Preview/upload helper for image file inputs in user form
             $(document).off('click.moduleImagePreview').on('click.moduleImagePreview', 'button[id$="_preview"]', function () {
                 const btn = $(this);
                 const fileInput = btn.closest('.field').find('input[type="file"]')[0];
@@ -1222,7 +1300,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
 
             if (field.lockOnEdit && state.editingId[moduleName]) {
                 const selectedLabel = lookupLabel(field.lookup, value);
-
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
                         <label for="${id}">${label}</label>
@@ -1294,7 +1371,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
             const type = field.type || 'text';
             const inputValue = value || '';
             const placeholder = escapeHtml(field.placeholder || `Enter ${field.label.toLowerCase()}`);
-            // special-case image field for admin UI: provide file picker plus URL fallback
+            
             if (moduleName === 'users' && field.name === 'image') {
                 return `
                     <div class="field ${field.full ? 'full' : ''}">
@@ -1320,11 +1397,8 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
         function getFieldValue(moduleName, fieldName) {
             const current = state.records[moduleName]?.editing || null;
             if (!current) return '';
-            if (fieldName === 'assigned_user_ids') {
-                return current.assigned_user_ids || [];
-            }
-            if (fieldName === 'user_ids') {
-                return current.user_ids || [];
+            if (fieldName === 'assigned_user_ids' || fieldName === 'user_ids') {
+                return current[fieldName] || [];
             }
             return current[fieldName] ?? '';
         }
@@ -1342,7 +1416,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 $('[name="assigned_user_ids[]"]').html('<option value="">Select a department first</option>').val([]);
                 $('[data-multi-filter-for="field_tasks_assigned_user_ids"]').val('').prop('disabled', true);
             }
-
             closeEditorDrawer();
         }
 
@@ -1354,9 +1427,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
 
         async function loadLookup(name) {
             const endpoint = lookupSources[name];
-            if (!endpoint || state.lookups[name]) {
-                return;
-            }
+            if (!endpoint || state.lookups[name]) return;
 
             const response = await apiRequest(endpoint, { limit: 500, offset: 0 });
             state.lookups[name] = response.data || [];
@@ -1380,16 +1451,10 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 });
 
             await Promise.all(requests);
-
             state.counts = { ...state.counts, ...totals };
 
-            // Update overview cards after counts are fetched.
-            // Use the *current* visibility rules (admin vs non-admin) to avoid stale/incorrect rendering.
-            if ($('#moduleRoot').length) {
-                // Only re-render when currently on dashboard.
-                if (state.activeModule === 'overview') {
-                    renderOverview();
-                }
+            if ($('#moduleRoot').length && state.activeModule === 'overview') {
+                renderOverview();
             }
         }
 
@@ -1407,7 +1472,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 if (state.search[moduleName]) {
                     payload.search = state.search[moduleName];
                 }
-
 
                 const response = await apiRequest(cfg.list, payload);
                 const rows = response.data || [];
@@ -1430,6 +1494,8 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 return;
             }
 
+            const isAuthorizedToAlterTasks = (moduleName !== 'tasks') || canManageTasks();
+
             const html = rows.map((row) => {
                 const cells = cfg.columns.map((column) => {
                     const raw = column.render ? column.render(row) : (column.lookup ? lookupLabel(column.lookup, row[column.key]) : row[column.key]);
@@ -1441,13 +1507,13 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                         ${cells}
                         <td>
                             <div class="row-actions">
-<button type="button" class="mini icon-mini" aria-label="Edit" data-action="edit" data-id="${escapeHtml(getRowId(row, moduleName))}">
+                                <button type="button" class="mini icon-mini" aria-label="Edit" data-action="edit" data-id="${escapeHtml(getRowId(row, moduleName))}" ${isAuthorizedToAlterTasks ? '' : 'style="display:none;"'}>
                                     <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                                         <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z" />
                                         <path d="M14.06 4.19l3.75 3.75" />
                                     </svg>
                                 </button>
-                                <button type="button" class="mini icon-mini" aria-label="Delete" data-action="delete" data-id="${escapeHtml(getRowId(row, moduleName))}">
+                                <button type="button" class="mini icon-mini" aria-label="Delete" data-action="delete" data-id="${escapeHtml(getRowId(row, moduleName))}" ${isAuthorizedToAlterTasks ? '' : 'style="display:none;"'}>
                                     <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
                                         <path d="M3 6h18" />
                                         <path d="M8 6V4h8v2" />
@@ -1456,6 +1522,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                                         <path d="M14 11v6" />
                                     </svg>
                                 </button>
+                                ${!isAuthorizedToAlterTasks ? '<span style="font-size:12px; color:var(--muted)">Read-Only</span>' : ''}
                             </div>
                         </td>
                     </tr>
@@ -1468,7 +1535,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 const id = $(this).data('id');
                 const item = rows.find(row => String(getRowId(row, moduleName)) === String(id));
                 if (item) {
-                    openRowEditor(moduleName, item);
+                    fillForm(moduleName, item);
                 }
             });
 
@@ -1483,10 +1550,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                 return raw === null || raw === undefined || raw === '' ? '-' : raw;
             }
             return escapeHtml(raw ?? column.fallback ?? '-');
-        }
-
-        function openRowEditor(moduleName, item) {
-            fillForm(moduleName, item);
         }
 
         function renderTaskAssigneeOptions(selectedValues = []) {
@@ -1552,7 +1615,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                     option.prop('hidden', false);
                     return;
                 }
-
                 const label = option.text().toLowerCase();
                 option.prop('hidden', normalizedQuery ? !label.includes(normalizedQuery) : false);
             });
@@ -1592,29 +1654,41 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
         }
 
         function fillForm(moduleName, item) {
+            if (moduleName === 'tasks' && !canManageTasks()) {
+                setNotice('Unauthorized: Only Admin (User ID: 1) or Manager (User ID: 2) can update tasks.', 'error');
+                return;
+            }
+
             setEditing(moduleName, item);
             $('#recordId').val(getRowId(item, moduleName));
 
-            modules[moduleName].fields.forEach((field) => {
-                if (field.createOnly) return;
-                const selector = `[name="${field.name}${field.type === 'multi-select' ? '[]' : ''}"]`;
-                const element = $(selector);
-                if (!element.length) return;
-
-                if (field.type === 'multi-select') {
-                    const values = Array.isArray(item[field.name]) ? item[field.name] : (item[field.name] ? [item[field.name]] : []);
-                    element.val(values.map(String));
-                } else {
-                    element.val(item[field.name] ?? '');
-                }
-            });
-
             if (moduleName === 'tasks') {
                 const assignedValues = item.assigned_user_ids || [];
-                const departmentId = item.department_id || $('#field_tasks_department_id').val() || '';
+                const departmentId = item.department_id || '';
+                
+                modules[moduleName].fields.forEach((field) => {
+                    if (field.createOnly || field.name === 'assigned_user_ids') return;
+                    const selector = `[name="${field.name}"]`;
+                    $(selector).val(item[field.name] ?? '');
+                });
+
                 void loadTaskAssignees(departmentId, assignedValues.map(String)).then(() => {
                     $('[name="assigned_user_ids[]"]').val(assignedValues.map(String));
                     syncTaskAssigneeFilter();
+                });
+            } else {
+                modules[moduleName].fields.forEach((field) => {
+                    if (field.createOnly) return;
+                    const selector = `[name="${field.name}${field.type === 'multi-select' ? '[]' : ''}"]`;
+                    const element = $(selector);
+                    if (!element.length) return;
+
+                    if (field.type === 'multi-select') {
+                        const values = Array.isArray(item[field.name]) ? item[field.name] : (item[field.name] ? [item[field.name]] : []);
+                        element.val(values.map(String));
+                    } else {
+                        element.val(item[field.name] ?? '');
+                    }
                 });
             }
 
@@ -1634,8 +1708,7 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
             }
 
             openEditorDrawer(moduleName, 'edit');
-
-            setNotice(`Editing ${modules[moduleName].title.toLowerCase()} record #${getRowId(item, moduleName)}.`, '');
+            setNotice(`Editing ${modules[moduleName].title.toLowerCase()} record #${getRowId(item, moduleName)}.`, 'info');
         }
 
         async function submitModule(moduleName) {
@@ -1661,6 +1734,12 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
             if (payload.file_size === '') delete payload.file_size;
 
             const isEdit = !!payload.id;
+
+            if (moduleName === 'tasks' && !canManageTasks()) {
+                setNotice('Unauthorized Action: Only User ID 1 and 2 may update tasks.', 'error');
+                return;
+            }
+
             if (moduleName === 'taskStatusLogs' && !isEdit) {
                 setNotice('Select a log entry from the list first.', 'error');
                 return;
@@ -1669,20 +1748,17 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
 
             try {
                 setLoader(true);
-                setNotice('Saving record...', '');
                 let response;
-                // If the form includes a file input, send as multipart FormData
                 const fileInput = form.querySelector('input[type="file"][name="image_file"]');
                 if (fileInput && fileInput.files && fileInput.files.length) {
                     const fd = new FormData();
-                    // append all original form entries from the FormData object
                     for (const pair of formData.entries()) {
                         fd.append(pair[0], pair[1]);
                     }
 
                     response = await (async () => {
                         try {
-                            const jq = await $.ajax({
+                            return await $.ajax({
                                 type: 'POST',
                                 url: `${API_BASE}/${endpoint}`,
                                 data: fd,
@@ -1690,7 +1766,6 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                                 contentType: false,
                                 headers: apiHeaders()
                             });
-                            return jq;
                         } catch (xhr) {
                             throw new Error(extractError(xhr.responseJSON || {}));
                         }
@@ -1715,6 +1790,12 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
 
         async function deleteRecord(moduleName, id) {
             const cfg = modules[moduleName];
+
+            if (moduleName === 'tasks' && !canManageTasks()) {
+                setNotice('Unauthorized Action: Destructive task mutations are restricted.', 'error');
+                return;
+            }
+
             if (!confirm(`Delete this ${cfg.title.slice(0, -1).toLowerCase()} record?`)) return;
 
             try {
@@ -1741,14 +1822,12 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
             state.activeModule = moduleName;
             $('#sidebarNav button').removeClass('active');
             $(`#sidebarNav button[data-module="${moduleName}"]`).addClass('active');
-            setNotice('', '');
 
             if (moduleName === 'overview') {
                 renderOverview();
                 void loadOverviewCounts();
                 return;
             }
-
             void renderModule(moduleName);
         }
 
@@ -1762,13 +1841,18 @@ ${canCreate ? '<button id="newButton" type="button" class="btn btn-primary" aria
                     setLoader(true);
                     await apiRequest('logout', {});
                 } catch (error) {
-                    // ignore logout errors and clear local session anyway
+                    // fallthrough fallback clearance handler
                 } finally {
                     localStorage.removeItem('smart-office-token');
                     localStorage.removeItem('smart-office-user');
                     window.location.href = '/login';
                 }
             });
+        }
+
+        function getVisibleModuleConfig() {
+            const visibleOrder = getVisibleModuleOrder();
+            return visibleOrder.map((key) => ({ key, cfg: modules[key] })).filter(item => !!item.cfg);
         }
 
         async function init() {

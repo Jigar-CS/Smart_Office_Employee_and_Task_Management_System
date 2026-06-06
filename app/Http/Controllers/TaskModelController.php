@@ -28,6 +28,10 @@ class TaskModelController extends Controller
             return false;
         }
 
+        if (in_array((int) $user->role_id, [1, 2], true)) {
+            return true;
+        }
+
         $role = RoleModel::find($user->role_id);
 
         return $role && in_array($role->name, ['Admin', 'Manager'], true);
@@ -102,7 +106,6 @@ class TaskModelController extends Controller
             return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
         }
 
-        // Include lookup joins so search can match lookup labels (names/titles)
         $tasksQuery = TaskModel::query()
             ->leftJoin('tbl_priorities as p', 'tbl_tasks.priority_id', '=', 'p.priority_id')
             ->leftJoin('tbl_task_status as ts', 'tbl_tasks.task_status_id', '=', 'ts.task_status_id')
@@ -113,18 +116,11 @@ class TaskModelController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            // Security: reject HTML/script input
-            if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
-                return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
-            }
-            // Security: reject HTML/script input
             if (preg_match('/<\s*\/?[a-z][a-z0-9]*\b[^>]*>/i', $search) || preg_match('/\b(script|onload|onerror|onmouseover|onclick)\b/i', $search)) {
                 return response()->json(['status' => 400, 'error' => 'Invalid search input.'], 400);
             }
 
             $tasksQuery->where(function($q) use ($search) {
-
-
                 $q->where('tbl_tasks.title', 'like', '%' . $search . '%')
                   ->orWhere('tbl_tasks.description', 'like', '%' . $search . '%')
                   ->orWhere('p.title', 'like', '%' . $search . '%')
@@ -152,7 +148,6 @@ class TaskModelController extends Controller
             $tasksQuery = $tasksQuery->whereIn('task_id', $assignedTaskIds);
         }
 
-        // Pagination: prefer page param, fallback to offset/limit. Default 5 per page.
         $limit = $request->input('limit', 5);
         $page = $request->input('page');
         $offset = $request->input('offset');
@@ -165,7 +160,30 @@ class TaskModelController extends Controller
         $count = $tasksQuery->count();
         $tasks = $tasksQuery->skip($offset)->take($limit)->get();
 
-        // If not an admin viewing all tasks, include who assigned the task to this user.
+        // --- NEW FIX: Fetch and map assigned user names for all rows ---
+        $allTaskIds = $tasks->pluck('task_id')->all();
+        if (!empty($allTaskIds)) {
+            // Get all active assignments combined with user information for the loaded tasks
+            $allAssignments = TaskAssignmentModel::leftJoin('tbl_users as u', 'tbl_task_assignments.user_id', '=', 'u.user_id')
+                ->whereIn('tbl_task_assignments.task_id', $allTaskIds)
+                ->where('tbl_task_assignments.status', 1)
+                ->select('tbl_task_assignments.task_id', 'u.name')
+                ->get()
+                ->groupBy('task_id');
+
+            foreach ($tasks as $t) {
+                $taskAssignments = $allAssignments->get($t->task_id);
+                if ($taskAssignments) {
+                    // Extract names and combine them into a comma-separated list
+                    $namesArray = $taskAssignments->pluck('name')->filter()->all();
+                    $t->assigned_users = implode(', ', $namesArray);
+                } else {
+                    $t->assigned_users = 'Unassigned';
+                }
+            }
+        }
+        // --- END OF FIX ---
+
         if (! $this->canViewAllTasks($authUser)) {
             $taskIds = $tasks->pluck('task_id')->all();
             if (!empty($taskIds)) {
@@ -263,7 +281,6 @@ class TaskModelController extends Controller
                 $log->task_id = $task->task_id;
                 $log->from_status_id = (int) $task->task_status_id;
                 $log->to_status_id = (int) $task->task_status_id;
-                $log->assigned_by = $authUser->user_id;
                 $log->changed_by = $authUser->user_id;
                 $log->remarks = 'Assigned to: ' . implode(',', $assignedIds);
                 $log->department_id = $task->department_id;
@@ -290,21 +307,6 @@ class TaskModelController extends Controller
             'priority_id' => 'nullable|integer|exists:tbl_priorities,priority_id',
             'task_status_id' => 'nullable|integer|exists:tbl_task_status,task_status_id',
             'department_id' => 'nullable|integer|exists:tbl_departments,department_id',
-        ], [
-            'id.required' => 'Task id is required.',
-            'id.integer' => 'Task id must be an integer.',
-            'id.exists' => 'Task not found.',
-            'title.string' => 'Title must be a string.',
-            'title.max' => 'Title may not be greater than :max characters.',
-            'description.string' => 'Description must be a string.',
-            'start_date.date' => 'Start date must be a valid date.',
-            'due_date.date' => 'Due date must be a valid date.',
-            'priority_id.integer' => 'Priority id must be an integer.',
-            'priority_id.exists' => 'Selected priority is invalid.',
-            'task_status_id.integer' => 'Task status id must be an integer.',
-            'task_status_id.exists' => 'Selected task status is invalid.',
-            'department_id.integer' => 'Department id must be an integer.',
-            'department_id.exists' => 'Selected department is invalid.',
         ]);
 
         if ($valid->fails()) {
@@ -317,58 +319,45 @@ class TaskModelController extends Controller
                 return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
             }
 
-            $assigned = TaskAssignmentModel::where('task_id', $request->input('id'))
-                ->where('user_id', $authUser->user_id)
-                ->where('status', 1)
-                ->exists();
-
-            if (! $assigned) {
-                return response()->json(['status' => 403, 'error' => 'This task is not assigned to you.'], 403);
-            }
-
             $task = TaskModel::find($request->input('id'));
             if (! $task) {
                 return response()->json(['status' => 404, 'error' => 'Record not found.'], 404);
             }
-            // If user is not Admin/Manager, only allow changing task_status_id
-            if (! $this->canManageTasks($authUser)) {
-                // Disallow changing other fields from non-manager users
+
+            $isManager = $this->canManageTasks($authUser);
+
+            if (! $isManager) {
+                $assigned = TaskAssignmentModel::where('task_id', $request->input('id'))
+                    ->where('user_id', $authUser->user_id)
+                    ->where('status', 1)
+                    ->exists();
+
+                if (! $assigned) {
+                    return response()->json(['status' => 403, 'error' => 'This task is not assigned to you.'], 403);
+                }
+
                 $allowed = ['id', 'task_status_id'];
                 $provided = array_keys($request->all());
                 $extra = array_diff($provided, $allowed);
                 if (count($extra) > 0) {
                     return response()->json(['status' => 403, 'error' => 'You are only allowed to update the task status.'], 403);
                 }
-
-                if ($request->has('task_status_id')) {
-                    $task->task_status_id = $request->input('task_status_id');
-                }
-            } else {
-                if ($request->has('title')) {
-                    $task->title = $request->input('title');
-                }
-                if ($request->has('description')) {
-                    $task->description = $request->input('description');
-                }
-                if ($request->has('start_date')) {
-                    $task->start_date = $request->input('start_date');
-                }
-                if ($request->has('due_date')) {
-                    $task->due_date = $request->input('due_date');
-                }
-                if ($request->has('priority_id')) {
-                    $task->priority_id = $request->input('priority_id');
-                }
-                if ($request->has('task_status_id')) {
-                    $task->task_status_id = $request->input('task_status_id');
-                }
-                if ($request->has('department_id')) {
-                    $task->department_id = $request->input('department_id');
-                }
-                if ($request->has('status')) {
-                    $task->status = $request->input('status');
-                }
             }
+
+            if ($isManager) {
+                if ($request->has('title')) $task->title = $request->input('title');
+                if ($request->has('description')) $task->description = $request->input('description');
+                if ($request->has('start_date')) $task->start_date = $request->input('start_date');
+                if ($request->has('due_date')) $task->due_date = $request->input('due_date');
+                if ($request->has('priority_id')) $task->priority_id = $request->input('priority_id');
+                if ($request->has('department_id')) $task->department_id = $request->input('department_id');
+                if ($request->has('status')) $task->status = $request->input('status');
+            }
+
+            if ($request->has('task_status_id')) {
+                $task->task_status_id = $request->input('task_status_id');
+            }
+
             $task->save();
 
             return response()->json(['status' => 200, 'data' => $task], 200);
@@ -393,13 +382,8 @@ class TaskModelController extends Controller
                 return response()->json(['status' => 401, 'error' => 'Unauthorized.'], 401);
             }
 
-            $assigned = TaskAssignmentModel::where('task_id', $request->input('id'))
-                ->where('user_id', $caller->user_id)
-                ->where('status', 1)
-                ->exists();
-
-            if (! $assigned) {
-                return response()->json(['status' => 403, 'error' => 'This task is not assigned to you.'], 403);
+            if (! $this->canManageTasks($caller)) {
+                return response()->json(['status' => 403, 'error' => 'Only Admins or Managers can delete tasks.'], 403);
             }
 
             $task = TaskModel::find($request->input('id'));
