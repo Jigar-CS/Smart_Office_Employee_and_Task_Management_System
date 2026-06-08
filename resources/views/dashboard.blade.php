@@ -1715,11 +1715,10 @@
             bindEvents();
 
             try {
+                setLoader(true);
                 renderSidebar();
+                await loadOverviewCounts();
                 renderOverview();
-                setTimeout(function () {
-                    void loadOverviewCounts();
-                }, 0);
             } catch (error) {
                 setNotice(error.message, 'error');
                 if (error.message.toLowerCase().includes('unauthorized')) {
